@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1e4d8c">
+<title>IE 工作台 · 江微</title>
+<style>
+:root{
+  --bg:#f2f5f9;--card:#fff;--txt:#16203a;--sub:#7a8699;--line:#e4e9f2;
+  --blue:#1e4d8c;--blue2:#2f6fed;--red:#e5484d;--green:#18a058;--amber:#e6a23c;--purple:#7c5cff;--teal:#0ea5a5;
+  --shadow:0 1px 3px rgba(22,32,58,.06),0 4px 14px rgba(22,32,58,.05);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);font-size:14px;padding-bottom:calc(64px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+header{background:linear-gradient(135deg,#1e4d8c,#2f6fed);color:#fff;padding:16px 16px 14px;position:sticky;top:0;z-index:50}
+header .row{display:flex;justify-content:space-between;align-items:flex-end}
+header h1{font-size:17px;font-weight:600;letter-spacing:.3px}
+header .who{font-size:11px;opacity:.8;margin-top:3px}
+header .dt{font-size:11px;opacity:.85;text-align:right;line-height:1.5}
+nav{display:flex;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:70px;z-index:49;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;min-width:66px;border:0;background:none;padding:10px 8px;font-size:12px;color:var(--sub);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;font-family:inherit}
+nav button.on{color:var(--blue2);border-bottom-color:var(--blue2);font-weight:600}
+main{padding:12px;max-width:1000px;margin:0 auto}
+.page{display:none}.page.on{display:block;animation:f .18s}
+@keyframes f{from{opacity:0;transform:translateY(3px)}to{opacity:1}}
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:13px;margin-bottom:10px}
+.card>h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px;font-weight:600}
+.card>h3 .badge{font-size:10px;background:var(--red);color:#fff;border-radius:8px;padding:1px 6px;font-weight:500}
+.card>h3 .more{margin-left:auto;font-size:11px;color:var(--blue2);font-weight:400;cursor:pointer}
+/* 顶部 KPI */
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+.kpi>div{background:var(--card);border-radius:11px;box-shadow:var(--shadow);padding:10px 4px;text-align:center}
+.kpi b{font-size:19px;display:block;line-height:1.25;font-weight:700}
+.kpi span{font-size:10px;color:var(--sub)}
+/* 六大板块入口 */
+.blocks{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.blk{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:11px 12px;cursor:pointer;border-left:3px solid var(--blue2);position:relative;overflow:hidden}
+.blk:active{transform:scale(.985)}
+.blk .n{font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px}
+.blk .d{font-size:10px;color:var(--sub);margin-top:3px;line-height:1.45}
+.blk .c{position:absolute;right:9px;top:9px;font-size:17px;font-weight:700;opacity:.16}
+/* 标签 */
+.tg{display:inline-block;font-size:10px;border-radius:4px;padding:1px 5px;margin-right:3px;font-weight:500;white-space:nowrap;line-height:1.5}
+/* 任务行 */
+.tk{display:flex;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.tk:last-child{border-bottom:0;padding-bottom:0}
+.tk .dot{width:7px;height:7px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.tk .body{flex:1;min-width:0}
+.tk .ti{font-size:13px;font-weight:500;line-height:1.4;word-break:break-word}
+.tk .mt{font-size:10px;color:var(--sub);margin-top:3px;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.tk .op{border:1px solid var(--line);background:#fff;border-radius:5px;font-size:10px;padding:2px 6px;color:var(--sub);cursor:pointer;flex-shrink:0;font-family:inherit}
+/* 进度 */
+.pb{height:5px;background:#edf1f7;border-radius:3px;overflow:hidden;margin:6px 0}
+.pb i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue2),var(--purple))}
+/* 料号卡 */
+.pn{border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:9px}
+.pn .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.pn .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:var(--blue)}
+.pn .nm{font-size:12px;margin-top:2px;line-height:1.4}
+.pn .info{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;font-size:10px}
+.pn .info>div{background:#f7f9fc;border-radius:6px;padding:5px 7px}
+.pn .info span{display:block;color:var(--sub);font-size:9px;margin-bottom:1px}
+.pn .info b{font-size:11px;font-weight:600;word-break:break-all}
+/* 版本时间轴 */
+.vt{margin-top:9px;border-top:1px dashed var(--line);padding-top:9px}
+.vt .v{display:flex;gap:8px;font-size:11px;padding:6px 0;position:relative}
+.vt .v:not(:last-child):before{content:'';position:absolute;left:5px;top:17px;bottom:-3px;width:1px;background:var(--line)}
+.vt .v .pt{width:11px;height:11px;border-radius:50%;flex-shrink:0;margin-top:2px;background:#fff;border:2px solid var(--blue2);z-index:1}
+.vt .v .vb{flex:1;min-width:0}
+.vt .v .vh{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.vt .v .ver{font-weight:700;color:var(--blue);font-size:11px}
+.vt .v .vd{color:var(--sub);font-size:10px}
+.vt .v .vn{font-size:10px;color:var(--txt);margin-top:2px;line-height:1.45;opacity:.8}
+/* 表 */
+.tb{width:100%;border-collapse:collapse;font-size:11px}
+.tb th{text-align:left;color:var(--sub);font-weight:500;font-size:10px;padding:5px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tb td{padding:6px 4px;border-bottom:1px solid #f2f5f9;vertical-align:top}
+.tb tr:last-child td{border-bottom:0}
+.tb .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* 柱状 */
+.bars{display:flex;align-items:flex-end;gap:5px;height:88px;padding-top:6px}
+.bars>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%}
+.bars .b{width:100%;background:linear-gradient(180deg,#5b8def,#2f6fed);border-radius:3px 3px 0 0;min-height:2px;margin-top:auto}
+.bars .l{font-size:9px;color:var(--sub);white-space:nowrap}
+/* 按钮 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:0;border-radius:8px;padding:8px 13px;font-size:12px;cursor:pointer;background:var(--blue2);color:#fff;font-family:inherit;font-weight:500}
+.btn.ghost{background:#fff;color:var(--blue2);border:1px solid #c9d9f5}
+.btn.gray{background:#f0f3f8;color:var(--sub)}
+.btn.red{background:#fff;color:var(--red);border:1px solid #f3c6c7}
+.btn.sm{padding:5px 9px;font-size:11px}
+.btn:disabled{opacity:.45}
+/* 弹窗 */
+.modal{position:fixed;inset:0;background:rgba(15,25,45,.45);z-index:100;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.modal.on{display:flex}
+.modal .box{background:#fff;width:100%;max-width:540px;border-radius:16px 16px 0 0;padding:16px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+@media(min-width:640px){.modal{align-items:center;padding:20px}.modal .box{border-radius:14px;max-height:86vh}}
+.modal h3{font-size:15px;margin-bottom:2px}
+.modal .sub{font-size:11px;color:var(--sub);margin-bottom:10px}
+.modal label{display:block;font-size:11px;color:var(--sub);margin:9px 0 4px}
+.modal input,.modal select,.modal textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px;font-size:13px;background:#fafbfc;font-family:inherit;color:var(--txt)}
+.modal textarea{min-height:70px;resize:vertical;line-height:1.5}
+.r2{display:flex;gap:8px}.r2>div{flex:1}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:14px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--sub);font-family:inherit}
+.chip.on{background:var(--blue2);color:#fff;border-color:var(--blue2);font-weight:500}
+.empty{text-align:center;color:var(--sub);padding:20px 0;font-size:12px}
+.hint{font-size:11px;color:var(--sub);background:#f6f8fc;border-radius:7px;padding:7px 9px;margin-top:8px;line-height:1.6}
+.warn{border-left:3px solid var(--red);padding-left:9px}
+.warn.amber{border-left-color:var(--amber)}
+/* 底栏 */
+.bottombar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:55;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -1px 8px rgba(22,32,58,.05)}
+.bottombar button{flex:1;border:0;background:none;padding:8px 0 6px;font-size:10px;color:var(--sub);cursor:pointer;font-family:inherit}
+.bottombar button.on{color:var(--blue2);font-weight:600}
+.bottombar button i{font-size:17px;display:block;font-style:normal;margin-bottom:1px}
+#errbar{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#d92d20;color:#fff;font-size:12px;padding:9px 12px;line-height:1.5;white-space:pre-wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:680px){.grid2{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="errbar"></div>
+<header>
+  <div class="row">
+    <div><h1>IE 工作台</h1><div class="who" id="who"></div></div>
+    <div class="dt" id="dt"></div>
+  </div>
+</header>
+<nav id="nav"></nav>
+<main>
+  <div class="page" id="pg-home"></div>
+  <div class="page" id="pg-std"></div>
+  <div class="page" id="pg-jj"></div>
+  <div class="page" id="pg-mp"></div>
+  <div class="page" id="pg-ben"></div>
+  <div class="page" id="pg-rep"></div>
+  <div class="page" id="pg-data"></div>
+</main>
+<div class="bottombar" id="bbar"></div>
+<div class="modal" id="modal"><div class="box" id="mbox"></div></div>
+
+<script>
+/* ============ 自动生成的数据层：来自 IE工作内容记录（工时人力成本）-2026年.xlsx ============ */
+window.SEED = {
+  meta: { owner:'江微', dept:'IE小组', source:'IE工作内容记录（工时人力成本）-2026年', records:114, partNos:27 },
+  /* 六大工作类型（来自真实记录归并） */
+  types: [
+    { key:'stdtime',  name:'标准工时测定', short:'工时测定', color:'#2f6fed', desc:'按料号/工序测工时、复测、更新版本' },
+    { key:'jijian',   name:'计件单价制定', short:'计件方案', color:'#e5484d', desc:'单价制定/下调、超产激励、阶梯档位' },
+    { key:'manpower', name:'新项目人力评估', short:'人力评估', color:'#7c5cff', desc:'按产能需求评估双班人力与工序明细' },
+    { key:'finance',  name:'财务成本数据', short:'财务支持', color:'#0ea5a5', desc:'按月提供总成工时、差异占比分析' },
+    { key:'audit',    name:'审计佐证', short:'审计佐证', color:'#d97706', desc:'工时变动差异分析及佐证材料' },
+    { key:'process',  name:'标准文件与流程', short:'文件流程', color:'#64748b', desc:'管理办法、模版、OA流程梳理' }
+  ],
+  /* 变更归因（用于说明工时为什么变） */
+  reasons: [
+    { key:'craft', name:'工艺变更', color:'#d97706' },
+    { key:'proc',  name:'工序优化', color:'#2f6fed' },
+    { key:'std',   name:'检验标准变更', color:'#0ea5a5' },
+    { key:'skill', name:'熟练度上升', color:'#7c5cff' },
+    { key:'equip', name:'设备变更', color:'#e5484d' },
+    { key:'env',   name:'环境/管理影响', color:'#64748b' }
+  ],
+  shops: ['钣金','焊接','喷涂','喷粉','电泳','装配','冲压','圣龙'],
+  /* 料号台账（工时版本追踪的核心） */
+  partNos: [
+    { pn:'500111-00163', name:'下箱体_辊压（Ener Dmax）', shop:'焊接/装配', cat:'辊压箱',
+      hours:[
+        {ver:'V2.0', date:'2026-10-08', total:9706.63, unit:'s', note:'总成工时更新，明细至20261013版', reason:'craft', by:'江微'},
+        {ver:'V1.0', date:'2026-07-09', total:0, unit:'s', note:'小批量100台测定，焊接主线单班157台', reason:'init', by:'江微'}
+      ],
+      lastUpdate:'2026-10-08', cycleMonth:6 },
+    { pn:'500105-00469', name:'HO3内置冷板冲压下箱体', shop:'装配', cat:'冲压箱',
+      hours:[
+        {ver:'V2.0', date:'2026-10-23', total:0, unit:'s', note:'装配工序按现行动作重测：7人≈190台/日，9人可达240台/日', reason:'proc', by:'江微'},
+        {ver:'V1.0', date:'2026-05-18', total:0, unit:'s', note:'立项评审口径', reason:'init', by:'江微'}
+      ],
+      lastUpdate:'2026-10-23', cycleMonth:6 },
+    { pn:'500105-00418', name:'（冲压下箱体系列）', shop:'装配', cat:'冲压箱',
+      hours:[
+        {ver:'V1.0', date:'2026-08-19', total:28920.7, unit:'s', note:'双班300pcs需人力202人；单班150pcs需101人', reason:'init', by:'江微'}
+      ],
+      lastUpdate:'2026-08-19', cycleMonth:6 },
+    { pn:'500111-00136', name:'EnerW 项目箱体', shop:'冲压/钣金/焊接', cat:'辊压箱',
+      hours:[
+        {ver:'V1.1', date:'2026-05-18', total:0, unit:'s', note:'项目组评审后与4月初版差异修订', reason:'craft', by:'江微'},
+        {ver:'V1.0', date:'2026-04-16', total:0, unit:'s', note:'按600pcs评估双班人力', reason:'init', by:'江微'}
+      ],
+      lastUpdate:'2026-05-18', cycleMonth:6 },
+    { pn:'500111-00082', name:'焊接辊压框架总成', shop:'焊接/装配', cat:'辊压箱',
+      hours:[{ver:'V1.0', date:'2026-02-26', total:0, unit:'s', note:'计件单价全面调整（取消计件补助）', reason:'craft', by:'江微'}],
+      lastUpdate:'2026-02-26', cycleMonth:6 },
+    { pn:'500501-01065', name:'电泳件（挂具变更）', shop:'电泳', cat:'冲压箱',
+      hours:[{ver:'V1.1', date:'2026-06-27', total:0, unit:'s', note:'挂具24pcs/挂→60pcs/挂，线外穿挂取挂，工时重测', reason:'equip', by:'江微'}],
+      lastUpdate:'2026-06-27', cycleMonth:6 },
+    { pn:'10302000015', name:'装配件（滑轨工艺变更）', shop:'装配', cat:'储能柜',
+      hours:[
+        {ver:'V1.1', date:'2026-04-22', total:0, unit:'s', note:'滑轨每条贴胶处0.3MPa滚压10S，工序工时+50s', reason:'craft', by:'江微'},
+        {ver:'V1.0', date:'2026-03-20', total:0, unit:'s', note:'初版', reason:'init', by:'江微'}
+      ],
+      lastUpdate:'2026-04-22', cycleMonth:6 },
+    { pn:'10302000021', name:'装配件（水冷板变更）', shop:'装配', cat:'储能柜',
+      hours:[{ver:'V1.1', date:'2026-05-15', total:0, unit:'s', note:'水冷板焊道打胶+防爆阀改气密前安装，节拍+30s', reason:'craft', by:'江微'}],
+      lastUpdate:'2026-05-15', cycleMonth:6 },
+    { pn:'10304000028', name:'储能柜框架总成', shop:'钣金/喷涂/电泳/装配', cat:'储能柜',
+      hours:[{ver:'V1.0', date:'2026-01-23', total:0, unit:'s', note:'53款下料/45款折弯/17款压铆/11款人工焊/12款打磨/陶化 全工序测定', reason:'init', by:'江微'}],
+      lastUpdate:'2026-01-23', cycleMonth:6 },
+    { pn:'20800000952', name:'辊压箱喷涂件（82喷PVC）', shop:'喷涂', cat:'辊压箱',
+      hours:[{ver:'V1.1', date:'2026-01-08', total:0, unit:'s', note:'自动喷改手工喷，UPPH上升27.8%，计件单价重算', reason:'proc', by:'江微'}],
+      lastUpdate:'2026-01-08', cycleMonth:6 },
+    { pn:'500105-00476', name:'A1项目配套件', shop:'装配', cat:'冲压箱',
+      hours:[{ver:'V1.0', date:'2026-10-24', total:37545, unit:'s', note:'立项vs现状对比，总工时16760→37545s（2.24倍）', reason:'craft', by:'江微'}],
+      lastUpdate:'2026-10-24', cycleMonth:6 }
+  ],
+  /* 效益台账（真实金额） */
+  benefits: [
+    { date:'2026-06-20', title:'新能安计件方案首月成效', pn:'', type:'jijian', money:22357, unit:'元/月',
+      desc:'人力85→82人，产能+6.3%，单台人工成本-31元', reason:'proc', verified:true },
+    { date:'2026-10-22', title:'新能安钣金计件单价下调', pn:'', type:'jijian', money:14000, unit:'元/月',
+      desc:'框架补焊57→49元(-14%)、打磨32→25元(-28.1%)，退出底薪2.5人', reason:'proc', verified:false },
+    { date:'2026-09-10', title:'新能安装配线超产调整', pn:'', type:'jijian', money:0, unit:'元/月',
+      desc:'导轨切边取消银漆，单价154→140元/台，人力22→20人，人均产能+10%', reason:'proc', verified:true },
+    { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'stdtime', money:0, unit:'元/年',
+      desc:'遮蔽/喷PVC/烘烤/拆遮蔽 全工序改善，UPPH +27.8%', reason:'proc', verified:true },
+    { date:'2026-10-25', title:'A1项目产能差异查明', pn:'500105-00469', type:'manpower', money:0, unit:'',
+      desc:'人力181→375人(+194)，同人力产能低52%，单台工时1.65万→3.67万秒', reason:'craft', verified:true }
+  ],
+  /* 待办（真实在办事项） */
+  tasks: [
+    { title:'163新计件方案签批跟踪', type:'jijian', pn:'500111-00163', due:'2026-10-27', pri:'high', stage:'running',
+      detail:'双模式计件体系（焊工阶梯递减+普工底薪超产），已呈报待签批' },
+    { title:'A1项目产能差异改善方案', type:'manpower', pn:'500105-00469', due:'2026-10-31', pri:'high', stage:'running',
+      detail:'392工序差异已查明，需输出改善措施与人力回归路径' },
+    { title:'10月财务总成工时提供', type:'finance', pn:'', due:'2026-11-05', pri:'mid', stage:'todo',
+      detail:'按月提供当月生产料号总成工时（9月已完成，10月待提交）' },
+    { title:'163焊接主线OP10工时优化跟踪', type:'stdtime', pn:'500111-00163', due:'2026-11-10', pri:'mid', stage:'running',
+      detail:'上下料90s→60s、焊接140s→120s，目标单班200台' },
+    { title:'新能安计件实施效果月度跟踪', type:'jijian', pn:'', due:'2026-11-15', pri:'mid', stage:'running',
+      detail:'跟踪人力、产能、单台成本三项指标' },
+    { title:'标准工时管理办法OA流程落地', type:'process', pn:'', due:'2026-11-20', pri:'low', stage:'todo',
+      detail:'流程图梳理完成，待OA系统配置' }
+  ],
+  /* 月度记录（真实条数） */
+  monthly: { '2025-12':3,'2026-01':22,'2026-02':15,'2026-03':4,'2026-04':21,'2026-05':12,'2026-06':6,'2026-07':9,'2026-08':9,'2026-09':4,'2026-10':9 }
+};
+
+</script>
+<script>
+/* ============ 基础工具 ============ */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const today=()=>{const d=new Date();const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};
+const nowISO=()=>new Date().toISOString();
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const dDiff=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
+const fmtN=n=>n==null||n===''?'—':(+n).toLocaleString('zh-CN');
+const monOf=d=>d?d.slice(0,7):'';
+
+/* ============ 数据层 ============ */
+const KEY='ie_wb_v2';
+const ST={std:'标准工时测定',jj:'计件单价制定',mp:'新项目人力评估',fin:'财务成本数据',au:'审计佐证',pr:'标准文件与流程'};
+
+function seedData(){
+  const S=window.SEED;
+  const types=S.types.map(t=>({...t}));
+  const tmap=Object.fromEntries(types.map(t=>[t.key,t]));
+  const parts=S.partNos.map(p=>({
+    ...p,
+    hours:(p.hours||[]).map(h=>({...h})),
+    cycleMonth:p.cycleMonth||6
+  }));
+  const tasks=S.tasks.map(t=>({
+    id:uid(),title:t.title,type:t.type,pn:t.pn||'',due:t.due||'',pri:t.pri||'mid',
+    stage:t.stage||'todo',detail:t.detail||'',reason:t.reason||'',
+    hours:t.hours||0,created:nowISO(),done:false
+  }));
+  const bens=S.benefits.map(b=>({id:uid(),...b}));
+  return {v:2,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+    monthly:{...S.monthly},logs:[],lastMonthReport:''};
+}
+let DB=load();
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(!raw)return seedData();
+    const d=JSON.parse(raw);
+    if(!d||d.v!==2)return seedData();
+    return d;
+  }catch(e){return seedData()}
+}
+let LSOK=true;
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(DB))}
+  catch(e){
+    if(LSOK){LSOK=false;
+      alert('提示：当前浏览器限制了本地存储（无痕/隐私模式）。本次修改刷新后会丢失，建议在普通窗口打开，或到「数据」页导出备份。');}
+  }
+  render();
+}
+/* 类型/归因查询 */
+const tInfo=k=>DB.types.find(t=>t.key===k)||{name:k,color:'#94a3b8',short:k};
+const rInfo=k=>DB.reasons.find(t=>t.key===k)||{name:'初始测定',color:'#94a3b8'};
+function tgType(k){const t=tInfo(k);return `<span class="tg" style="background:${t.color}18;color:${t.color}">${esc(t.short||t.name)}</span>`}
+function tgReason(k){if(!k)return '';const r=rInfo(k);return `<span class="tg" style="background:${r.color}18;color:${r.color}">${esc(r.name)}</span>`}
+
+/* 工时新鲜度：距上次更新月数 */
+function ageMonths(d){
+  if(!d)return null;
+  const a=new Date(d),b=new Date();
+  return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth());
+}
+function freshness(p){
+  const m=ageMonths(p.lastUpdate);
+  if(m===null)return {lvl:2,txt:'无记录',color:'var(--sub)'};
+  const lim=p.cycleMonth||6;
+  if(m>lim)return {lvl:0,txt:`超期 ${m-lim} 个月`,color:'var(--red)',m};
+  if(m>lim-3)return {lvl:1,txt:`临近复测`,color:'var(--amber)',m};
+  return {lvl:3,txt:`${m} 个月前更新`,color:'var(--green)',m};
+}
+/* 下次复测日期 */
+function nextDate(p){
+  if(!p.lastUpdate)return '';
+  const d=new Date(p.lastUpdate);
+  if(isNaN(d))return '';
+  d.setMonth(d.getMonth()+(p.cycleMonth||6));
+  const q=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate());
+}
+/* 汇总 */
+function sum(){
+  const tasks=DB.tasks;
+  const open=tasks.filter(t=>t.stage!=='done');
+  const benM=DB.bens.filter(b=>b.unit&&b.unit.indexOf('月')>=0).reduce((s,b)=>s+(+b.money||0),0);
+  const benY=DB.bens.filter(b=>b.unit&&b.unit.indexOf('年')>=0).reduce((s,b)=>s+(+b.money||0),0);
+  const stale=DB.parts.filter(p=>freshness(p).lvl<3).length;
+  const over=tasks.filter(t=>t.stage!=='done'&&t.due&&t.due<today()).length;
+  const hours=DB.parts.reduce((s,p)=>s+(p.hours.length||0),0);
+  return {open:open.length,benM,benY,stale,over,parts:DB.parts.length,vers:hours,tasks:tasks.length};
+}
+
+/* ============ 导航 ============ */
+const PAGES=[
+  ['home','▦','工作台'],
+  ['std','⚙','工时测定'],
+  ['jj','¥','计件方案'],
+  ['mp','👥','人力评估'],
+  ['ben','◆','效益台账'],
+  ['rep','▤','月度总结'],
+  ['data','⛁','数据']
+];
+let cur='home';
+function buildNav(){
+  const mk=list=>list.map(p=>`<button data-p="${p[0]}"><i>${p[1]}</i>${p[2]}</button>`).join('');
+  $('nav').innerHTML=mk(PAGES);
+  $('bbar').innerHTML=mk(PAGES.filter(p=>['home','std','jj','ben','rep'].includes(p[0])));
+  ['nav','bbar'].forEach(id=>{
+    const el=$(id);
+    if(!el||el.dataset.b)return;
+    el.dataset.b='1';
+    el.addEventListener('click',e=>{
+      const b=e.target.closest('button[data-p]');
+      if(b)go(b.dataset.p);
+    });
+  });
+}
+function go(p){
+  if(!$('pg-'+p))p='home';
+  cur=p;
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
+  $('pg-'+p).classList.add('on');
+  document.querySelectorAll('#nav button,#bbar button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  window.scrollTo(0,0);
+  render();
+}
+function render(){
+  try{
+    const d=new Date();
+    $('dt').innerHTML=d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})+'<br>'+'周'+'日一二三四五六'[d.getDay()];
+    $('who').textContent=DB.owner+' · '+DB.dept;
+    const map={home:rHome,std:rStd,jj:rJj,mp:rMp,ben:rBen,rep:rRep,data:rData};
+    (map[cur]||rHome)();
+  }catch(e){
+    const bar=$('errbar');
+    if(bar){bar.style.display='block';bar.textContent='渲染出错：'+e.message}
+  }
+}
+
+/* ============ 工作台首页 ============ */
+function rHome(){
+  const s=sum();
+  const open=DB.tasks.filter(t=>t.stage!=='done');
+  const urgent=open.filter(t=>t.due&&dDiff(today(),t.due)<=3).sort((a,b)=>(a.due||'').localeCompare(b.due||''));
+  const stale=DB.parts.filter(p=>freshness(p).lvl<3).sort((a,b)=>(freshness(a).m||0)<(freshness(b).m||0)?1:-1);
+  const cntByType=k=>DB.tasks.filter(t=>t.type===k&&t.stage!=='done').length;
+  const pnByType=k=>DB.parts.filter(p=>{
+    if(k==='stdtime')return true;
+    if(k==='jijian')return DB.bens.some(b=>b.type==='jijian'&&(b.pn===p.pn||!b.pn));
+    if(k==='manpower')return ['500105-00469','500105-00418','500111-00136','500105-00476'].includes(p.pn);
+    return false;
+  }).length;
+
+  $('pg-home').innerHTML=`
+  <div class="kpi">
+    <div><b style="color:var(--blue2)">${s.open}</b><span>在办事项</span></div>
+    <div><b style="color:var(--red)">${s.over}</b><span>已超期</span></div>
+    <div><b style="color:var(--amber)">${s.stale}</b><span>待复测料号</span></div>
+    <div><b style="color:var(--green)">${(s.benM/10000).toFixed(1)}万</b><span>月效益(元)</span></div>
+  </div>
+
+  <div class="card">
+    <h3>▦ 六大工作板块</h3>
+    <div class="blocks">
+      ${DB.types.map(t=>{
+        const n=k=>k==='stdtime'?DB.parts.length:cntByType(k);
+        return `<div class="blk" style="border-left-color:${t.color}" onclick="go('${t.key==='stdtime'?'std':t.key==='jijian'?'jj':t.key==='manpower'?'mp':'ben'}')">
+          <div class="n">${esc(t.name)}</div>
+          <div class="d">${esc(t.desc)}</div>
+          <div class="c" style="color:${t.color}">${n(t.key)}</div>
+        </div>`}).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⏰ 3 天内到期 <span class="badge" style="background:var(--amber)">${urgent.length}</span><span class="more" onclick="go('rep')">全部 →</span></h3>
+    ${urgent.length?urgent.map(t=>taskRow(t)).join(''):'<div class="empty">近 3 天没有到期事项</div>'}
+  </div>
+
+  <div class="card">
+    <h3>⚠️ 待复测料号 <span class="badge">${stale.length}</span><span class="more" onclick="go('std')">管理 →</span></h3>
+    <div class="hint" style="margin-top:0;margin-bottom:8px">标准工时超过复测周期（默认 6 个月）未更新的料号，审计时容易被追问。</div>
+    ${stale.length?stale.slice(0,5).map(p=>{
+      const f=freshness(p);
+      return `<div class="tk" style="align-items:center">
+        <div class="dot" style="background:${f.color}"></div>
+        <div class="body">
+          <div class="ti" style="font-family:ui-monospace,monospace;font-size:12px">${esc(p.pn)}</div>
+          <div class="mt"><span>${esc(p.name)}</span><span>· ${esc(p.shop)}</span><span>· ${f.txt}</span></div>
+        </div>
+        <button class="op" onclick="logVersion('${esc(p.pn)}')">复测</button>
+      </div>`}).join(''):'<div class="empty">全部在有效期内 ✓</div>'}
+  </div>
+
+  <div class="card">
+    <h3>▤ 月度工作量（近 11 个月记录条数）</h3>
+    ${monthBars()}
+  </div>
+
+  <div class="card">
+    <h3>◆ 效益速览</h3>
+    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin:0">
+      <div><b style="color:var(--green)">${fmtN(s.benM)}</b><span>月节约(元)</span></div>
+      <div><b style="color:var(--green)">${fmtN(s.benM*12)}</b><span>折年(元)</span></div>
+      <div><b>${s.vers}</b><span>工时版本数</span></div>
+    </div>
+    <div class="hint">数据来自你的年度工作记录（${window.SEED.meta.records} 条记录 / ${window.SEED.meta.partNos} 个料号）。</div>
+  </div>`;
+}
+function taskRow(t){
+  const c=tInfo(t.type).color;
+  const dl=t.due?dDiff(today(),t.due):null;
+  const over=t.stage!=='done'&&dl!==null&&dl<0;
+  return `<div class="tk">
+    <div class="dot" style="background:${c}"></div>
+    <div class="body">
+      <div class="ti">${esc(t.title)}</div>
+      <div class="mt">${tgType(t.type)}${t.pn?`<span style="font-family:ui-monospace,monospace">${esc(t.pn)}</span>`:''}
+        ${t.due?`<span style="color:${over?'var(--red)':dl<=3?'var(--amber)':'var(--sub)'}">${over?'逾期'+(-dl)+'天':'剩'+dl+'天'}</span>`:''}
+        ${t.pri==='high'?'<span style="color:var(--red)">高优</span>':''}
+      </div>
+    </div>
+    <button class="op" onclick="openTask('${t.id}')">编辑</button>
+  </div>`;
+}
+function monthBars(){
+  const ks=Object.keys(DB.monthly).sort();
+  const max=Math.max(1,...ks.map(k=>DB.monthly[k]));
+  return `<div class="bars">${ks.map(k=>{
+    const v=DB.monthly[k]||0;
+    return `<div title="${k}: ${v} 条"><div class="b" style="height:${Math.max(3,v/max*100)}%"></div><div class="l">${k.slice(5)}</div></div>`;
+  }).join('')}</div>`;
+}
+
+/* ============ 标准工时测定（核心） ============ */
+let stdFilter='all';
+function rStd(){
+  const s=sum();
+  const list=DB.parts.slice().sort((a,b)=>{
+    const fa=freshness(a).lvl,fb=freshness(b).lvl;
+    if(fa!==fb)return fa-fb;
+    return (b.lastUpdate||'').localeCompare(a.lastUpdate||'');
+  }).filter(p=>{
+    if(stdFilter==='all')return true;
+    if(stdFilter==='stale')return freshness(p).lvl<3;
+    return p.shop.indexOf(stdFilter)>=0;
+  });
+
+  $('pg-std').innerHTML=`
+  <div class="card">
+    <h3>⚙ 标准工时测定 <span class="badge" style="background:var(--blue2)">${DB.parts.length} 个料号</span></h3>
+    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div><b>${DB.parts.reduce((s,p)=>s+p.hours.length,0)}</b><span>工时版本</span></div>
+      <div><b style="color:var(--red)">${s.stale}</b><span>待复测</span></div>
+      <div><b style="color:var(--green)">${DB.parts.reduce((s,p)=>s+p.hours.length,0)-s.stale}</b><span>有效</span></div>
+    </div>
+    <div class="chips" style="margin-bottom:4px">
+      <div class="chip ${stdFilter==='all'?'on':''}" onclick="stdFilter='all';rStd()">全部</div>
+      <div class="chip ${stdFilter==='stale'?'on':''}" onclick="stdFilter='stale';rStd()">待复测 ${s.stale}</div>
+      ${DB.types&&[]||[]}
+      <div class="chip ${stdFilter==='钣金'?'on':''}" onclick="stdFilter='钣金';rStd()">钣金</div>
+      <div class="chip ${stdFilter==='焊接'?'on':''}" onclick="stdFilter='焊接';rStd()">焊接</div>
+      <div class="chip ${stdFilter==='喷涂'?'on':''}" onclick="stdFilter='喷涂';rStd()">喷涂</div>
+      <div class="chip ${stdFilter==='电泳'?'on':''}" onclick="stdFilter='电泳';rStd()">电泳</div>
+      <div class="chip ${stdFilter==='装配'?'on':''}" onclick="stdFilter='装配';rStd()">装配</div>
+    </div>
+  </div>
+  ${list.map(pnCard).join('')||'<div class="card"><div class="empty">没有符合条件的料号</div></div>'}
+  <div class="card"><button class="btn" style="width:100%" onclick="newPart()">＋ 新建料号工时台账</button></div>`;
+}
+function pnCard(p){
+  const f=freshness(p);
+  const vs=p.hours.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const latest=vs[0];
+  return `<div class="pn">
+    <div class="hd">
+      <div style="flex:1;min-width:0">
+        <div class="code">${esc(p.pn)}</div>
+        <div class="nm">${esc(p.name)}</div>
+      </div>
+      <span class="tg" style="background:${f.color}18;color:${f.color};flex-shrink:0">${f.txt}</span>
+    </div>
+    <div class="info">
+      <div><span>车间</span><b>${esc(p.shop)}</b></div>
+      <div><span>最新工时</span><b>${latest&&latest.total?fmtN(latest.total)+' s':'—'}</b></div>
+      <div><span>版本数</span><b>${vs.length} 个</b></div>
+    </div>
+    ${latest?`<div style="margin-top:7px;font-size:11px;color:var(--sub);line-height:1.5">最新 ${esc(latest.ver)} · ${esc(latest.date)} ${tgReason(latest.reason)}<br>${esc(latest.note||'')}</div>`:''}
+    <div class="vt">
+      ${vs.map((v,i)=>`<div class="v">
+        <div class="pt" style="${i===0?'border-color:'+f.color:''}"></div>
+        <div class="vb">
+          <div class="vh">
+            <span class="ver">${esc(v.ver)}</span>
+            <span class="vd">${esc(v.date)}</span>
+            ${tgReason(v.reason)}
+            ${v.total?`<span class="vd" style="color:var(--blue2)">${fmtN(v.total)}s</span>`:''}
+          </div>
+          <div class="vn">${esc(v.note||'')}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:8px;display:flex;gap:6px">
+      <button class="btn sm ghost" onclick="logVersion('${esc(p.pn)}')">＋ 记录新版本</button>
+      <button class="btn sm gray" onclick="setCycle('${esc(p.pn)}')">复测周期</button>
+    </div>
+  </div>`;
+}
+
+/* ============ 计件方案 ============ */
+function rJj(){
+  const tasks=DB.tasks.filter(t=>t.type==='jijian');
+  const bens=DB.bens.filter(b=>b.type==='jijian');
+  const total=bens.reduce((s,b)=>s+(+b.money||0),0);
+  $('pg-jj').innerHTML=`
+  <div class="card">
+    <h3>¥ 计件单价制定 <span class="badge" style="background:var(--red)">${tasks.filter(t=>t.stage!=='done').length} 在办</span></h3>
+    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div><b>${bens.length}</b><span>方案数</span></div>
+      <div><b style="color:var(--green)">${fmtN(total)}</b><span>月节约(元)</span></div>
+      <div><b>${DB.bens.filter(b=>b.verified).length}</b><span>已验证</span></div>
+    </div>
+    <div class="hint">你今年主导 7 类计件方案：全面取消计件补助改版、新能安单价制定、超产计件、补焊拆分单人计件、163双模式、163焊接主线+圣龙后道、钣金单价下调。</div>
+  </div>
+  <div class="card">
+    <h3>在办事项</h3>
+    ${tasks.length?tasks.map(t=>taskRow(t)).join(''):'<div class="empty">暂无</div>'}
+  </div>
+  <div class="card">
+    <h3>方案与成效</h3>
+    ${bens.length?bens.map(b=>`<div class="tk" style="align-items:flex-start">
+      <div class="dot" style="background:${b.verified?'var(--green)':'var(--amber)'}"></div>
+      <div class="body">
+        <div class="ti">${esc(b.title)}</div>
+        <div class="mt"><span>${esc(b.date)}</span>${b.pn?`<span style="font-family:ui-monospace,monospace">${esc(b.pn)}</span>`:''}${tgReason(b.reason)}
+          ${b.money?`<span style="color:var(--green);font-weight:600">${fmtN(b.money)} ${esc(b.unit)}</span>`:''}
+          <span class="tg" style="background:${b.verified?'#e8f5ee':'#fdf3e0'};color:${b.verified?'var(--green)':'var(--amber)'}">${b.verified?'已验证':'待验证'}</span>
+        </div>
+        <div style="font-size:11px;color:var(--sub);margin-top:4px;line-height:1.5">${esc(b.desc)}</div>
+      </div>
+      <button class="op" onclick="openBen('${b.id}')">编辑</button>
+    </div>`).join(''):'<div class="empty">暂无方案</div>'}
+    <button class="btn ghost sm" style="margin-top:9px" onclick="openBen()">＋ 记录方案成效</button>
+  </div>`;
+}
+
+/* ============ 人力评估 ============ */
+function rMp(){
+  const tasks=DB.tasks.filter(t=>t.type==='manpower');
+  $('pg-mp').innerHTML=`
+  <div class="card">
+    <h3>👥 新项目人力评估</h3>
+    <div class="hint" style="margin-top:0">按产能需求（单班/双班 pcs）评估人力与工序明细，输出后用于立项与产线配置。</div>
+  </div>
+  <div class="card">
+    <h3>在办事项</h3>
+    ${tasks.length?tasks.map(t=>taskRow(t)).join(''):'<div class="empty">暂无</div>'}
+  </div>
+  <div class="card">
+    <h3>历史评估记录</h3>
+    <table class="tb">
+      <tr><th>料号</th><th>需求</th><th>人力结果</th></tr>
+      <tr><td style="font-family:ui-monospace,monospace">500105-00418</td><td>双班300pcs<br>单班150pcs</td><td class="num">202 人<br>101 人</td></tr>
+      <tr><td style="font-family:ui-monospace,monospace">500111-00136</td><td>600 pcs</td><td class="num">双班评估</td></tr>
+      <tr><td style="font-family:ui-monospace,monospace">500111-00163</td><td>400 pcs</td><td class="num">双班评估</td></tr>
+      <tr><td style="font-family:ui-monospace,monospace">500111-00183</td><td>150 台/班</td><td class="num">评估中</td></tr>
+      <tr><td style="font-family:ui-monospace,monospace">500105-00469</td><td>双班对比</td><td class="num">181→375 人</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>关键结论</h3>
+    <div class="hint" style="background:#fdf3e0;color:#92400e">
+      A1 项目（500105-00469/00476）36 道工序对比：总工时 16760s → 37545s（2.24 倍），双班人力 181 → 375 人（+194），
+      同人力产能比立项低 52%。此结论已汇报伏总，后续需输出改善路径。
+    </div>
+  </div>`;
+}
+
+/* ============ 效益台账 ============ */
+function rBen(){
+  const b=DB.bens;
+  const byM=b.filter(x=>x.unit&&x.unit.indexOf('月')>=0);
+  const totalM=byM.reduce((s,x)=>s+(+x.money||0),0);
+  const byType={};
+  b.forEach(x=>{byType[x.type]=(byType[x.type]||0)+(+x.money||0)});
+  $('pg-ben').innerHTML=`
+  <div class="card">
+    <h3>◆ 效益台账</h3>
+    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div><b style="color:var(--green)">${fmtN(totalM)}</b><span>月节约(元)</span></div>
+      <div><b style="color:var(--green)">${fmtN(totalM*12)}</b><span>折年(元)</span></div>
+      <div><b>${b.length}</b><span>台账条目</span></div>
+    </div>
+    <div class="hint">只统计单位含「月」的条目并折年；比率类指标（产能提升%、UPPH）单独列出不计入金额。</div>
+  </div>
+  <div class="card">
+    <h3>明细</h3>
+    <table class="tb">
+      <tr><th>日期</th><th>项目</th><th>效果</th><th class="num">金额</th></tr>
+      ${b.map(x=>`<tr>
+        <td style="white-space:nowrap">${esc(x.date.slice(5))}</td>
+        <td>${esc(x.title)}${x.pn?`<br><span style="font-family:ui-monospace,monospace;font-size:10px;color:var(--sub)">${esc(x.pn)}</span>`:''}</td>
+        <td style="font-size:10px;color:var(--sub);line-height:1.45">${esc(x.desc)}</td>
+        <td class="num">${x.money?fmtN(x.money):'—'}${x.money?'<br><span style="font-size:9px;color:var(--sub)">'+esc(x.unit)+'</span>':''}</td>
+      </tr>`).join('')}
+    </table>
+    <button class="btn ghost sm" style="margin-top:10px" onclick="openBen()">＋ 新增条目</button>
+  </div>
+  <div class="card">
+    <h3>按工作类型</h3>
+    ${Object.keys(byType).map(k=>{
+      const t=tInfo(k);
+      const v=byType[k];
+      const max=Math.max(1,...Object.values(byType));
+      return `<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:8px">
+        <span style="width:66px;color:var(--sub);flex-shrink:0">${esc(t.short||t.name)}</span>
+        <span style="flex:1;height:13px;background:#edf1f7;border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:${v/max*100}%;background:${t.color};border-radius:4px"></i></span>
+        <span style="width:64px;text-align:right;font-weight:600">${fmtN(v)}</span>
+      </div>`}).join('')||'<div class="empty">暂无</div>'}
+  </div>`;
+}
+
+/* ============ 月度总结 ============ */
+function rRep(){
+  const months=Object.keys(DB.monthly).sort().reverse();
+  const curM=months[0]||monOf(today());
+  $('pg-rep').innerHTML=`
+  <div class="card">
+    <h3>▤ 月度工作总结</h3>
+    <div class="hint" style="margin-top:0">按选定月份自动汇总：完成事项、涉及料号、效益贡献，可直接粘到邮件或汇报材料。</div>
+    <div class="r2" style="margin-top:9px">
+      <div><label style="font-size:11px;color:var(--sub)">选择月份</label>
+        <select id="repM" onchange="rRep()">${months.map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m}</option>`).join('')}</select>
+      </div>
+      <div style="display:flex;align-items:flex-end"><button class="btn" style="width:100%" onclick="genReport()">生成月报</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>输出</h3>
+    <textarea id="reportBox" style="width:100%;min-height:280px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12px;line-height:1.7;font-family:inherit;background:#fafbfc" placeholder="点上方「生成月报」"></textarea>
+    <div style="display:flex;gap:7px;margin-top:9px">
+      <button class="btn ghost sm" onclick="copyReport()">复制全文</button>
+      <button class="btn gray sm" onclick="dlReport()">下载 .txt</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>在办事项总览 <span class="badge" style="background:var(--amber)">${DB.tasks.filter(t=>t.stage!=='done').length}</span></h3>
+    ${DB.tasks.filter(t=>t.stage!=='done').map(t=>taskRow(t)).join('')||'<div class="empty">全部完成 ✓</div>'}
+    <button class="btn ghost sm" style="margin-top:9px" onclick="openTask()">＋ 新增事项</button>
+  </div>`;
+}
+function genReport(){
+  const m=$('repM').value;
+  const t=DB.tasks.filter(x=>monOf(x.created)===m||monOf(x.due)===m);
+  const done=t.filter(x=>x.stage==='done');
+  const parts=DB.parts.filter(p=>p.hours.some(h=>monOf(h.date)===m));
+  const bens=DB.bens.filter(b=>monOf(b.date)===m);
+  const newVers=DB.parts.flatMap(p=>p.hours.filter(h=>monOf(h.date)===m).map(h=>({pn:p.pn,name:p.name,h})));
+  const money=bens.reduce((s,b)=>s+(+b.money||0),0);
+  const byType={};
+  parts.forEach(p=>{});
+  newVers.forEach(v=>{
+    const k=p=>p;
+  });
+
+  const L=[];
+  L.push(`【IE 工作月报】${m}　${DB.owner} · ${DB.dept}`);
+  L.push('');
+  L.push(`一、本月概况`);
+  L.push(`  · 处理工作项 ${t.length} 项，完成 ${done.length} 项`);
+  L.push(`  · 涉及料号 ${parts.length} 个，工时版本更新 ${newVers.length} 次`);
+  if(money)L.push(`  · 新增/验证效益 ${fmtN(money)} 元/月（折年 ${fmtN(money*12)} 元）`);
+  L.push('');
+
+  if(newVers.length){
+    L.push(`二、标准工时测定与修订（${newVers.length} 项）`);
+    newVers.forEach(v=>{
+      L.push(`  · ${v.pn}｜${v.name || ''}`);
+      L.push(`    ${v.h.ver}（${v.h.date}）${v.h.total?` 总成工时 ${fmtN(v.h.total)}s`:''} ${rInfo(v.h.reason).name}`);
+      if(v.h.note)L.push(`    说明：${v.h.note}`);
+    });
+    L.push('');
+  }
+  if(bens.length){
+    L.push(`三、计件方案与效益（${bens.length} 项）`);
+    bens.forEach(b=>{
+      L.push(`  · ${b.title}${b.pn?`（${b.pn}）`:''}`);
+      L.push(`    成效：${b.desc}`);
+      if(b.money)L.push(`    金额：${fmtN(b.money)} ${b.unit}`);
+    });
+    L.push('');
+  }
+  const mp=t.filter(x=>x.type==='manpower');
+  if(mp.length){
+    L.push(`四、人力评估（${mp.length} 项）`);
+    mp.forEach(x=>{L.push(`  · ${x.title}`);if(x.detail)L.push(`    ${x.detail}`)});
+    L.push('');
+  }
+  const other=t.filter(x=>x.type!=='manpower'&&x.type!=='jijian');
+  if(other.length){
+    L.push(`五、其他事项（${other.length} 项）`);
+    other.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.stage==='done'?'（已完成）':''}`));
+    L.push('');
+  }
+  const open=DB.tasks.filter(x=>x.stage!=='done');
+  if(open.length){
+    L.push(`六、下月计划（${open.length} 项）`);
+    open.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.due?`（${x.due}）`:''}`));
+  }
+  $('reportBox').value=L.join('\n');
+}
+function copyReport(){
+  const v=$('reportBox').value;
+  if(!v){alert('请先生成月报');return}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(v).then(()=>alert('已复制'),()=>fbCopy(v));
+  }else fbCopy(v);
+}
+function fbCopy(v){
+  const ta=document.createElement('textarea');ta.value=v;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');alert('已复制')}catch(e){alert('复制失败，请手动选择')}
+  document.body.removeChild(ta);
+}
+function dlReport(){
+  const v=$('reportBox').value;
+  if(!v){alert('请先生成月报');return}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([v],{type:'text/plain;charset=utf-8'}));
+  a.download='IE月报-'+(($('repM')&&$('repM').value)||today())+'.txt';
+  a.click();
+}
+
+/* ============ 数据管理 ============ */
+function rData(){
+  const n=DB.tasks.length+DB.parts.length+DB.bens.length;
+  $('pg-data').innerHTML=`
+  <div class="card">
+    <h3>⛁ 数据管理</h3>
+    <div class="hint" style="margin-top:0">当前：${DB.parts.length} 个料号台账 / ${DB.tasks.length} 条事项 / ${DB.bens.length} 条效益。数据存在本机浏览器，换设备或清缓存前请导出。</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn" onclick="expJSON()">导出 JSON</button>
+      <button class="btn ghost" onclick="$('impf').click()">导入恢复</button>
+      <button class="btn gray" onclick="resetSeed()">恢复初始数据</button>
+      <button class="btn red" onclick="clearAll()">清空</button>
+    </div>
+    <input type="file" id="impf" accept=".json" style="display:none" onchange="impJSON(this)">
+  </div>
+  <div class="card">
+    <h3>数据来源</h3>
+    <div class="hint">初始数据来自《${esc(window.SEED.meta.source)}.xlsx》：共 ${window.SEED.meta.records} 条工作记录、${window.SEED.meta.partNos} 个料号，已归并为 6 大工作类型并建立工时版本台账。</div>
+  </div>
+  <div class="card">
+    <h3>📋 复测计划清单</h3>
+    <div class="hint" style="margin-top:0">按各料号复测周期推算下次复测时间，超期标红。</div>
+    <table class="tb" style="margin-top:8px">
+      <tr><th>料号</th><th>上次更新</th><th>周期</th><th>下次复测</th><th>状态</th></tr>
+      ${DB.parts.slice().sort((a,b)=>{
+        const na=nextDate(a),nb=nextDate(b);
+        return (na||'9').localeCompare(nb||'9');
+      }).map(p=>{
+        const nd=nextDate(p), f=freshness(p);
+        return `<tr>
+          <td style="font-family:ui-monospace,monospace;font-size:10px">${esc(p.pn)}</td>
+          <td style="white-space:nowrap">${esc(p.lastUpdate||'—')}</td>
+          <td class="num">${p.cycleMonth||6}月</td>
+          <td style="white-space:nowrap">${esc(nd||'—')}</td>
+          <td style="color:${f.color};white-space:nowrap">${f.lvl<3?'⚠ '+f.txt:'正常'}</td>
+        </tr>`;
+      }).join('')}
+    </table>
+  </div>
+  <div class="card">
+    <h3>关于工时版本</h3>
+    <div class="hint">同一料号每次复测/修订就新增一个版本（V1.0→V1.1→V2.0），保留变更原因、日期、总成工时。默认复测周期 6 个月，超期会在首页提醒。</div>
+  </div>`;
+}
+function expJSON(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}));
+  a.download='IE工作台备份-'+today()+'.json';a.click();
+}
+function impJSON(inp){
+  const f=inp.files&&inp.files[0];
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d||!d.parts||!d.tasks)throw 0;
+      DB=d;save();alert('导入成功');go('home');
+    }catch(x){alert('文件格式不正确')}
+  };
+  r.readAsText(f);
+}
+function resetSeed(){
+  if(!confirm('恢复初始数据？当前修改会被覆盖（建议先导出备份）'))return;
+  DB=seedData();save();
+}
+function clearAll(){
+  if(!confirm('确定清空全部数据？不可恢复'))return;
+  if(!confirm('再次确认：真的要清空吗？'))return;
+  DB={v:2,owner:DB.owner,dept:DB.dept,types:DB.types,tasks:[],parts:[],bens:[],reasons:DB.reasons,monthly:{},logs:[]};
+  save();
+}
+
+/* ============ 弹窗 ============ */
+function openModal(html){$('mbox').innerHTML=html;$('modal').classList.add('on')}
+function closeModal(){$('modal').classList.remove('on')}
+$('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+/* 记录工时新版本 */
+function logVersion(pn){
+  const p=DB.parts.find(x=>x.pn===pn);
+  if(!p){alert('未找到该料号');return}
+  const last=p.hours.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
+  const nv=(()=>{
+    let maxMaj=0,maxMin=-1;
+    (p.hours||[]).forEach(h=>{
+      const m=/V(\d+)\.(\d+)/.exec(h.ver||'');
+      if(m){
+        const maj=+m[1],min=+m[2];
+        if(maj>maxMaj||(maj===maxMaj&&min>maxMin)){maxMaj=maj;maxMin=min}
+      }
+    });
+    if(maxMin<0)return 'V1.0';
+    return 'V'+maxMaj+'.'+(maxMin+1);
+  })();
+  openModal(`<h3>记录工时新版本</h3><div class="sub">${esc(p.pn)}　${esc(p.name)}</div>
+  <div class="r2">
+    <div><label>版本号</label><input id="vVer" value="${nv}"></div>
+    <div><label>日期</label><input type="date" id="vDate" value="${today()}"></div>
+  </div>
+  <label>总成工时（秒）</label><input type="number" step="0.01" id="vTotal" value="${last&&last.total?last.total:''}" placeholder="9706.63">
+  <label>变更原因</label>
+  <div class="chips" id="vReason">${DB.reasons.map((r,i)=>`<div class="chip ${i===0?'on':''}" data-k="${r.key}">${esc(r.name)}</div>`).join('')}</div>
+  <label>变更说明</label><textarea id="vNote" placeholder="如：工艺变更/工时变化/产能影响"></textarea>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveVersion('${esc(pn)}')">保存</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>`);
+  document.querySelectorAll('#vReason .chip').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('#vReason .chip').forEach(x=>x.classList.remove('on'));
+      c.classList.add('on');
+    });
+  });
+}
+function saveVersion(pn){
+  const p=DB.parts.find(x=>x.pn===pn);
+  if(!p)return;
+  const ver=$('vVer').value.trim();
+  const date=$('vDate').value;
+  if(!ver||!date){alert('请填写版本号和日期');return}
+  const rc=document.querySelector('#vReason .chip.on');
+  p.hours.push({
+    ver,date,total:+$('vTotal').value||0,unit:'s',
+    note:$('vNote').value.trim(),reason:rc?rc.dataset.k:'',
+    by:DB.owner
+  });
+  p.lastUpdate=date;
+  save();closeModal();
+}
+function setCycle(pn){
+  const p=DB.parts.find(x=>x.pn===pn);
+  if(!p)return;
+  openModal(`<h3>复测周期</h3><div class="sub">${esc(pn)}</div>
+  <label>周期（月）</label><input type="number" min="1" max="36" id="cyNum" value="${p.cycleMonth||6}">
+  <div class="hint">超过该月数未更新，首页会提示待复测。</div>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveCycle('${esc(pn)}')">保存</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>`);
+}
+function saveCycle(pn){
+  const p=DB.parts.find(x=>x.pn===pn);
+  if(!p)return;
+  p.cycleMonth=Math.max(1,+$('cyNum').value||6);
+  save();closeModal();
+}
+function newPart(){
+  openModal(`<h3>新建料号工时台账</h3>
+  <div class="r2">
+    <div><label>料号 *</label><input id="npPn" placeholder="500111-00163"></div>
+    <div><label>品名</label><input id="npName" placeholder="下箱体_辊压"></div>
+  </div>
+  <div class="r2">
+    <div><label>车间</label><input id="npShop" placeholder="焊接/装配"></div>
+    <div><label>产品系列</label><input id="npCat" placeholder="辊压箱"></div>
+  </div>
+  <div class="r2">
+    <div><label>初版版本号</label><input id="npVer" value="V1.0"></div>
+    <div><label>总成工时(s)</label><input type="number" step="0.01" id="npTotal" placeholder="9706.63"></div>
+  </div>
+  <label>说明</label><textarea id="npNote" placeholder="测定范围、批量、工序"></textarea>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveNewPart()">保存</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>`);
+}
+function saveNewPart(){
+  const pn=$('npPn').value.trim();
+  if(!pn){alert('请填写料号');return}
+  if(DB.parts.some(p=>p.pn===pn)){alert('该料号已存在');return}
+  const date=today();
+  DB.parts.push({
+    pn,name:$('npName').value.trim()||'（未命名）',shop:$('npShop').value.trim()||'—',
+    cat:$('npCat').value.trim()||'—',lastUpdate:date,cycleMonth:6,
+    hours:[{ver:$('npVer').value.trim()||'V1.0',date,total:+$('npTotal').value||0,unit:'s',
+      note:$('npNote').value.trim(),reason:'',by:DB.owner}]
+  });
+  save();closeModal();
+}
+
+/* 事项编辑 */
+function openTask(id){
+  const t=id?DB.tasks.find(x=>x.id===id):null;
+  openModal(`<h3>${t?'编辑事项':'新增事项'}</h3>
+  <label>标题 *</label><input id="tTitle" value="${t?esc(t.title):''}" placeholder="要做什么">
+  <label>工作类型</label>
+  <div class="chips" id="tType">${DB.types.map(x=>`<div class="chip ${t&&t.type===x.key?'on':''}" data-k="${x.key}">${esc(x.name)}</div>`).join('')}</div>
+  <div class="r2">
+    <div><label>关联料号</label><input id="tPn" value="${t?esc(t.pn):''}" placeholder="500111-00163"></div>
+    <div><label>截止日期</label><input type="date" id="tDue" value="${t?t.due:''}"></div>
+  </div>
+  <div class="r2">
+    <div><label>优先级</label><select id="tPri">
+      <option value="high" ${t&&t.pri==='high'?'selected':''}>高</option>
+      <option value="mid" ${t&&t.pri==='mid'?'selected':''}>中</option>
+      <option value="low" ${t&&t.pri==='low'?'selected':''}>低</option></select></div>
+    <div><label>状态</label><select id="tStage">
+      <option value="todo" ${t&&t.stage==='todo'?'selected':''}>未开始</option>
+      <option value="running" ${t&&t.stage==='running'?'selected':''}>进行中</option>
+      <option value="done" ${t&&t.stage==='done'?'selected':''}>已完成</option></select></div>
+  </div>
+  <label>详细内容</label><textarea id="tDetail">${t?esc(t.detail):''}</textarea>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveTask('${id||''}')">保存</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>
+  ${t?`<button class="btn red" style="width:100%;margin-top:8px" onclick="delTask('${t.id}')">删除</button>`:''}`);
+  document.querySelectorAll('#tType .chip').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('#tType .chip').forEach(x=>x.classList.remove('on'));
+      c.classList.add('on');
+    });
+  });
+}
+function saveTask(id){
+  const title=$('tTitle').value.trim();
+  if(!title){alert('请填写标题');return}
+  const tc=document.querySelector('#tType .chip.on');
+  const data={
+    title,type:tc?tc.dataset.k:'stdtime',pn:$('tPn').value.trim(),
+    due:$('tDue').value,pri:$('tPri').value,stage:$('tStage').value,
+    detail:$('tDetail').value.trim()
+  };
+  if(id){Object.assign(DB.tasks.find(x=>x.id===id),data)}
+  else DB.tasks.push({id:uid(),created:nowISO(),...data});
+  save();closeModal();
+}
+function delTask(id){
+  if(!confirm('删除该事项？'))return;
+  DB.tasks=DB.tasks.filter(x=>x.id!==id);
+  save();closeModal();
+}
+
+/* 效益编辑 */
+function openBen(id){
+  const b=id?DB.bens.find(x=>x.id===id):null;
+  openModal(`<h3>${b?'编辑效益条目':'新增效益条目'}</h3>
+  <label>标题 *</label><input id="bTitle" value="${b?esc(b.title):''}" placeholder="如：新能安计件方案首月成效">
+  <div class="r2">
+    <div><label>日期</label><input type="date" id="bDate" value="${b?b.date:today()}"></div>
+    <div><label>关联料号</label><input id="bPn" value="${b?esc(b.pn):''}" placeholder="可空"></div>
+  </div>
+  <label>工作类型</label>
+  <div class="chips" id="bType">${DB.types.map(x=>`<div class="chip ${b&&b.type===x.key?'on':''}" data-k="${x.key}">${esc(x.name)}</div>`).join('')}</div>
+  <div class="r2">
+    <div><label>金额</label><input type="number" step="0.01" id="bMoney" value="${b?b.money:''}" placeholder="22357"></div>
+    <div><label>单位</label><select id="bUnit">
+      <option value="元/月" ${!b||b.unit==='元/月'?'selected':''}>元/月</option>
+      <option value="元/年" ${b&&b.unit==='元/年'?'selected':''}>元/年</option>
+      <option value="元/台" ${b&&b.unit==='元/台'?'selected':''}>元/台</option>
+      <option value="" ${b&&!b.unit?'selected':''}>无（比率类）</option>
+    </select></div>
+  </div>
+  <label>成效说明</label><textarea id="bDesc">${b?esc(b.desc):''}</textarea>
+  <label style="display:flex;align-items:center;gap:6px;margin-top:10px">
+    <input type="checkbox" id="bVer" ${b&&b.verified?'checked':''} style="width:auto"> 已验证（有实测数据支撑）
+  </label>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveBen('${id||''}')">保存</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>
+  ${b?`<button class="btn red" style="width:100%;margin-top:8px" onclick="delBen('${b.id}')">删除</button>`:''}`);
+  document.querySelectorAll('#bType .chip').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('#bType .chip').forEach(x=>x.classList.remove('on'));
+      c.classList.add('on');
+    });
+  });
+}
+function saveBen(id){
+  const title=$('bTitle').value.trim();
+  if(!title){alert('请填写标题');return}
+  const tc=document.querySelector('#bType .chip.on');
+  const data={
+    title,date:$('bDate').value||today(),pn:$('bPn').value.trim(),
+    type:tc?tc.dataset.k:'jijian',money:+$('bMoney').value||0,
+    unit:$('bUnit').value,desc:$('bDesc').value.trim(),
+    verified:$('bVer').checked,reason:''
+  };
+  if(id){Object.assign(DB.bens.find(x=>x.id===id),data)}
+  else DB.bens.push({id:uid(),...data});
+  save();closeModal();
+}
+function delBen(id){
+  if(!confirm('删除该条目？'))return;
+  DB.bens=DB.bens.filter(x=>x.id!==id);
+  save();closeModal();
+}
+
+/* ============ 启动 ============ */
+window.addEventListener('error',e=>{
+  const bar=$('errbar');
+  if(bar){bar.style.display='block';bar.textContent='脚本错误：'+(e.message||e.error)+'（第 '+(e.lineno||'?')+' 行）'}
+});
+try{
+  buildNav();
+  go('home');
+}catch(e){
+  const bar=$('errbar');
+  if(bar){bar.style.display='block';bar.textContent='初始化失败：'+e.message}
+}
+</script>
+</body>
+</html>
