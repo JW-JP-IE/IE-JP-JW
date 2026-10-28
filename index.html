@@ -425,6 +425,7 @@ function rHome(){
   <div class="card">
     <h3>⏰ 3 天内到期 <span class="badge" style="background:var(--amber)">${urgent.length}</span><span class="more" onclick="go('rep')">全部 →</span></h3>
     ${urgent.length?urgent.map(t=>taskRow(t)).join(''):'<div class="empty">近 3 天没有到期事项</div>'}
+    <button class="btn ghost sm" style="margin-top:9px" onclick="openTask()">＋ 新增工作事项</button>
   </div>
 
   <div class="card">
@@ -605,6 +606,7 @@ function rMp(){
   <div class="card">
     <h3>在办事项</h3>
     ${tasks.length?tasks.map(t=>taskRow(t)).join(''):'<div class="empty">暂无</div>'}
+    <button class="btn ghost sm" style="margin-top:9px" onclick="openTask(null,'manpower')">＋ 新增评估事项</button>
   </div>
   <div class="card">
     <h3>历史评估记录</h3>
@@ -962,12 +964,12 @@ function saveNewPart(){
 }
 
 /* 事项编辑 */
-function openTask(id){
+function openTask(id,preType){
   const t=id?DB.tasks.find(x=>x.id===id):null;
   openModal(`<h3>${t?'编辑事项':'新增事项'}</h3>
   <label>标题 *</label><input id="tTitle" value="${t?esc(t.title):''}" placeholder="要做什么">
   <label>工作类型</label>
-  <div class="chips" id="tType">${DB.types.map(x=>`<div class="chip ${t&&t.type===x.key?'on':''}" data-k="${x.key}">${esc(x.name)}</div>`).join('')}</div>
+  <div class="chips" id="tType">${DB.types.map(x=>`<div class="chip ${(t?t.type===x.key:x.key===preType)?'on':''}" data-k="${x.key}">${esc(x.name)}</div>`).join('')}</div>
   <div class="r2">
     <div><label>关联料号</label><input id="tPn" value="${t?esc(t.pn):''}" placeholder="500111-00163"></div>
     <div><label>截止日期</label><input type="date" id="tDue" value="${t?t.due:''}"></div>
