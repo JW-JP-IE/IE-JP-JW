@@ -462,17 +462,48 @@ function taskRow(t){
   const c=tInfo(t.type).color;
   const dl=t.due?dDiff(today(),t.due):null;
   const over=t.stage!=='done'&&dl!==null&&dl<0;
+  const done=t.stage==='done';
   return `<div class="tk">
-    <div class="dot" style="background:${c}"></div>
+    <div class="dot" style="background:${done?'var(--green)':c}"></div>
     <div class="body">
-      <div class="ti">${esc(t.title)}</div>
+      <div class="ti" style="${done?'text-decoration:line-through;color:var(--sub)':''}">${esc(t.title)}</div>
       <div class="mt">${tgType(t.type)}${t.pn?`<span style="font-family:ui-monospace,monospace">${esc(t.pn)}</span>`:''}
-        ${t.due?`<span style="color:${over?'var(--red)':dl<=3?'var(--amber)':'var(--sub)'}">${over?'逾期'+(-dl)+'天':'剩'+dl+'天'}</span>`:''}
-        ${t.pri==='high'?'<span style="color:var(--red)">高优</span>':''}
+        ${done?'<span style="color:var(--green)">已完成 ✓</span>':t.due?`<span style="color:${over?'var(--red)':dl<=3?'var(--amber)':'var(--sub)'}">${over?'逾期'+(-dl)+'天':'剩'+dl+'天'}</span>`:''}
+        ${t.pri==='high'&&!done?'<span style="color:var(--red)">高优</span>':''}
       </div>
+      ${done&&t.sum?`<div style="font-size:11px;color:var(--sub);margin-top:4px;line-height:1.5">📝 ${esc(t.sum)}</div>`:''}
+      ${done&&!t.sum?'<div style="font-size:11px;color:var(--amber);margin-top:4px">⚠ 还没写完成总结</div>':''}
     </div>
-    <button class="op" onclick="openTask('${t.id}')">编辑</button>
+    <div style="display:flex;gap:4px;flex-shrink:0">
+      ${done?`<button class="op" onclick="openSum('${t.id}')">${t.sum?'看总结':'写总结'}</button>`
+            :`<button class="op" onclick="quickDone('${t.id}')">完成</button>`}
+      <button class="op" onclick="openTask('${t.id}')">编辑</button>
+    </div>
   </div>`;
+}
+/* 完成事项 + 写总结 */
+function quickDone(id){
+  const t=DB.tasks.find(x=>x.id===id);if(!t)return;
+  t.stage='done';t.doneAt=t.doneAt||nowISO();
+  save();openSum(id);
+}
+function openSum(id){
+  const t=DB.tasks.find(x=>x.id===id);if(!t)return;
+  openModal(`<h3>✅ 完成总结</h3>
+  <div class="hint" style="margin-top:0">${esc(t.title)}</div>
+  <label>工作内容总结</label>
+  <textarea id="sText" style="min-height:130px" placeholder="做了什么、结果/数据、输出物。例：完成418工艺更新后人力重评，输出评估表，双班230→238人">${t.sum?esc(t.sum):''}</textarea>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveSum('${id}')">保存总结</button>
+    <button class="btn gray" onclick="closeModal()">跳过</button>
+  </div>`);
+}
+function saveSum(id){
+  const v=$('sText').value.trim();
+  if(!v){alert('请填写总结内容（跳过请点「跳过」）');return}
+  const t=DB.tasks.find(x=>x.id===id);
+  t.sum=v;t.stage='done';t.doneAt=t.doneAt||nowISO();
+  save();closeModal();
 }
 function monthBars(){
   const ks=Object.keys(DB.monthly).sort();
@@ -702,6 +733,20 @@ function rRep(){
     <h3>在办事项总览 <span class="badge" style="background:var(--amber)">${DB.tasks.filter(t=>t.stage!=='done').length}</span></h3>
     ${DB.tasks.filter(t=>t.stage!=='done').map(t=>taskRow(t)).join('')||'<div class="empty">全部完成 ✓</div>'}
     <button class="btn ghost sm" style="margin-top:9px" onclick="openTask()">＋ 新增事项</button>
+  </div>
+  <div class="card">
+    <h3>✅ 已完成工作总结 <span class="badge" style="background:var(--green)">${DB.tasks.filter(t=>t.stage==='done').length}</span></h3>
+    ${(()=>{const ds=DB.tasks.filter(t=>t.stage==='done').sort((a,b)=>(b.doneAt||b.created||'').localeCompare(a.doneAt||a.created||''));
+      return ds.length?ds.map(t=>`<div class="tk" style="align-items:flex-start">
+        <div class="dot" style="background:var(--green)"></div>
+        <div class="body">
+          <div class="ti">${esc(t.title)}</div>
+          <div class="mt"><span>${(t.doneAt||t.created||'').slice(0,10)}</span>${tgType(t.type)}${t.pn?`<span style="font-family:ui-monospace,monospace">${esc(t.pn)}</span>`:''}</div>
+          ${t.sum?`<div style="font-size:11px;color:var(--sub);margin-top:4px;line-height:1.5">📝 ${esc(t.sum)}</div>`:'<div style="font-size:11px;color:var(--amber);margin-top:4px">未写总结</div>'}
+        </div>
+        <button class="op" onclick="openSum('${t.id}')">${t.sum?'编辑':'补写'}</button>
+      </div>`).join(''):'<div class="empty">还没有已完成的事项</div>'})()}
+    <button class="btn ghost sm" style="margin-top:9px" onclick="exportDone()">一键导出工作总结</button>
   </div>`;
 }
 function genReport(){
@@ -1017,6 +1062,22 @@ function delTask(id){
   if(!confirm('删除该事项？'))return;
   DB.tasks=DB.tasks.filter(x=>x.id!==id);
   save();closeModal();
+}
+/* 导出已完成工作总结 */
+function exportDone(){
+  const ds=DB.tasks.filter(t=>t.stage==='done').sort((a,b)=>(a.doneAt||a.created||'').localeCompare(b.doneAt||b.created||''));
+  if(!ds.length){alert('还没有已完成的事项');return}
+  const L=['【已完成工作总结】'+today()+'　'+DB.owner];
+  L.push('');
+  ds.forEach((t,i)=>{
+    L.push((i+1)+'. '+t.title+'　'+(t.doneAt||t.created||'').slice(0,10)+(t.pn?'　'+t.pn:''));
+    L.push('   类型：'+tInfo(t.type).name);
+    L.push('   总结：'+(t.sum||'（未填写）'));
+    L.push('');
+  });
+  $('reportBox').value=L.join('\n');
+  $('reportBox').scrollIntoView({behavior:'smooth'});
+  go('rep');
 }
 
 /* 效益编辑 */
