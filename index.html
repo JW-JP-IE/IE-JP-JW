@@ -131,6 +131,7 @@ main{padding:12px;max-width:1000px;margin:0 auto}
 <main>
   <div class="page" id="pg-home"></div>
   <div class="page" id="pg-std"></div>
+  <div class="page" id="pg-rt"></div>
   <div class="page" id="pg-jj"></div>
   <div class="page" id="pg-mp"></div>
   <div class="page" id="pg-ben"></div>
@@ -146,12 +147,12 @@ window.SEED = {
   meta: { owner:'江微', dept:'IE小组', source:'IE工作内容记录（工时人力成本）-2026年', records:114, partNos:27 },
   /* 六大工作类型（来自真实记录归并） */
   types: [
-    { key:'stdtime',  name:'标准工时测定', short:'工时测定', color:'#2f6fed', desc:'按料号/工序测工时、复测、更新版本' },
+    { key:'measure',  name:'标准工时测定', short:'工时测定', color:'#2f6fed', desc:'新料号/新工序首次测定，全工序工时展开' },
+    { key:'retest',   name:'标准工时复测', short:'工时复测', color:'#0ea5a5', desc:'周期复测、变更后重测、版本更新' },
     { key:'jijian',   name:'计件单价制定', short:'计件方案', color:'#e5484d', desc:'单价制定/下调、超产激励、阶梯档位' },
     { key:'manpower', name:'新项目人力评估', short:'人力评估', color:'#7c5cff', desc:'按产能需求评估双班人力与工序明细' },
-    { key:'finance',  name:'财务成本数据', short:'财务支持', color:'#0ea5a5', desc:'按月提供总成工时、差异占比分析' },
-    { key:'audit',    name:'审计佐证', short:'审计佐证', color:'#d97706', desc:'工时变动差异分析及佐证材料' },
-    { key:'process',  name:'标准文件与流程', short:'文件流程', color:'#64748b', desc:'管理办法、模版、OA流程梳理' }
+    { key:'finance',  name:'财务成本数据', short:'财务支持', color:'#f59e0b', desc:'按月提供总成工时、差异占比分析' },
+    { key:'audit',    name:'审计佐证', short:'审计佐证', color:'#d97706', desc:'工时变动差异分析、佐证材料与标准文件' }
   ],
   /* 变更归因（用于说明工时为什么变） */
   reasons: [
@@ -222,7 +223,7 @@ window.SEED = {
       desc:'框架补焊57→49元(-14%)、打磨32→25元(-28.1%)，退出底薪2.5人', reason:'proc', verified:false },
     { date:'2026-09-10', title:'新能安装配线超产调整', pn:'', type:'jijian', money:0, unit:'元/月',
       desc:'导轨切边取消银漆，单价154→140元/台，人力22→20人，人均产能+10%', reason:'proc', verified:true },
-    { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'stdtime', money:0, unit:'元/年',
+    { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'measure', money:0, unit:'元/年',
       desc:'遮蔽/喷PVC/烘烤/拆遮蔽 全工序改善，UPPH +27.8%', reason:'proc', verified:true },
     { date:'2026-10-25', title:'A1项目产能差异查明', pn:'500105-00469', type:'manpower', money:0, unit:'',
       desc:'人力181→375人(+194)，同人力产能低52%，单台工时1.65万→3.67万秒', reason:'craft', verified:true }
@@ -235,11 +236,11 @@ window.SEED = {
       detail:'392工序差异已查明，需输出改善措施与人力回归路径' },
     { title:'10月财务总成工时提供', type:'finance', pn:'', due:'2026-11-05', pri:'mid', stage:'todo',
       detail:'按月提供当月生产料号总成工时（9月已完成，10月待提交）' },
-    { title:'163焊接主线OP10工时优化跟踪', type:'stdtime', pn:'500111-00163', due:'2026-11-10', pri:'mid', stage:'running',
+    { title:'163焊接主线OP10工时优化跟踪', type:'measure', pn:'500111-00163', due:'2026-11-10', pri:'mid', stage:'running',
       detail:'上下料90s→60s、焊接140s→120s，目标单班200台' },
     { title:'新能安计件实施效果月度跟踪', type:'jijian', pn:'', due:'2026-11-15', pri:'mid', stage:'running',
       detail:'跟踪人力、产能、单台成本三项指标' },
-    { title:'标准工时管理办法OA流程落地', type:'process', pn:'', due:'2026-11-20', pri:'low', stage:'todo',
+    { title:'标准工时管理办法OA流程落地', type:'audit', pn:'', due:'2026-11-20', pri:'low', stage:'todo',
       detail:'流程图梳理完成，待OA系统配置' }
   ],
   /* 月度记录（真实条数） */
@@ -277,7 +278,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:2,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:3,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -286,7 +287,14 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v!==2)return seedData();
+    if(!d||(d.v!==2&&d.v!==3))return seedData();
+    if(d.v===2){
+      /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
+      const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
+      (d.tasks||[]).concat(d.bens||[]).forEach(x=>{x.type=AL[x.type]||x.type});
+      d.types=window.SEED.types.map(t=>({...t}));
+      d.v=3;
+    }
     return d;
   }catch(e){return seedData()}
 }
@@ -344,6 +352,7 @@ function sum(){
 const PAGES=[
   ['home','▦','工作台'],
   ['std','⚙','工时测定'],
+  ['rt','⟳','工时复测'],
   ['jj','¥','计件方案'],
   ['mp','👥','人力评估'],
   ['ben','◆','效益台账'],
@@ -379,7 +388,7 @@ function render(){
     const d=new Date();
     $('dt').innerHTML=d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})+'<br>'+'周'+'日一二三四五六'[d.getDay()];
     $('who').textContent=DB.owner+' · '+DB.dept;
-    const map={home:rHome,std:rStd,jj:rJj,mp:rMp,ben:rBen,rep:rRep,data:rData};
+    const map={home:rHome,std:rStd,rt:rRt,jj:rJj,mp:rMp,ben:rBen,rep:rRep,data:rData};
     (map[cur]||rHome)();
   }catch(e){
     const bar=$('errbar');
@@ -395,11 +404,13 @@ function rHome(){
   const stale=DB.parts.filter(p=>freshness(p).lvl<3).sort((a,b)=>(freshness(a).m||0)<(freshness(b).m||0)?1:-1);
   const cntByType=k=>DB.tasks.filter(t=>t.type===k&&t.stage!=='done').length;
   const pnByType=k=>DB.parts.filter(p=>{
-    if(k==='stdtime')return true;
+    if(k==='measure')return true;
     if(k==='jijian')return DB.bens.some(b=>b.type==='jijian'&&(b.pn===p.pn||!b.pn));
     if(k==='manpower')return ['500105-00469','500105-00418','500111-00136','500105-00476'].includes(p.pn);
     return false;
   }).length;
+  const pageOf=k=>({measure:'std',retest:'rt',jijian:'jj',manpower:'mp',finance:'ben',audit:'ben'}[k]||'home');
+  const cntOf=k=>k==='measure'?DB.parts.length:k==='retest'?s.stale:cntByType(k);
 
   $('pg-home').innerHTML=`
   <div class="kpi">
@@ -412,13 +423,11 @@ function rHome(){
   <div class="card">
     <h3>▦ 六大工作板块</h3>
     <div class="blocks">
-      ${DB.types.map(t=>{
-        const n=k=>k==='stdtime'?DB.parts.length:cntByType(k);
-        return `<div class="blk" style="border-left-color:${t.color}" onclick="go('${t.key==='stdtime'?'std':t.key==='jijian'?'jj':t.key==='manpower'?'mp':'ben'}')">
+      ${DB.types.map(t=>`<div class="blk" style="border-left-color:${t.color}" onclick="go('${pageOf(t.key)}')">
           <div class="n">${esc(t.name)}</div>
           <div class="d">${esc(t.desc)}</div>
-          <div class="c" style="color:${t.color}">${n(t.key)}</div>
-        </div>`}).join('')}
+          <div class="c" style="color:${t.color}">${cntOf(t.key)}</div>
+        </div>`).join('')}
     </div>
   </div>
 
@@ -528,6 +537,12 @@ function rStd(){
     return p.shop.indexOf(stdFilter)>=0;
   });
 
+  const firsts=list.filter(p=>{
+    const l=p.hours.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];
+    return l&&(l.reason==='init'||!l.reason);
+  });
+  const ups=list.filter(p=>!firsts.includes(p));
+
   $('pg-std').innerHTML=`
   <div class="card">
     <h3>⚙ 标准工时测定 <span class="badge" style="background:var(--blue2)">${DB.parts.length} 个料号</span></h3>
@@ -538,18 +553,22 @@ function rStd(){
     </div>
     <div class="chips" style="margin-bottom:4px">
       <div class="chip ${stdFilter==='all'?'on':''}" onclick="stdFilter='all';rStd()">全部</div>
-      <div class="chip ${stdFilter==='stale'?'on':''}" onclick="stdFilter='stale';rStd()">待复测 ${s.stale}</div>
-      ${DB.types&&[]||[]}
       <div class="chip ${stdFilter==='钣金'?'on':''}" onclick="stdFilter='钣金';rStd()">钣金</div>
       <div class="chip ${stdFilter==='焊接'?'on':''}" onclick="stdFilter='焊接';rStd()">焊接</div>
       <div class="chip ${stdFilter==='喷涂'?'on':''}" onclick="stdFilter='喷涂';rStd()">喷涂</div>
       <div class="chip ${stdFilter==='电泳'?'on':''}" onclick="stdFilter='电泳';rStd()">电泳</div>
       <div class="chip ${stdFilter==='装配'?'on':''}" onclick="stdFilter='装配';rStd()">装配</div>
+      <div class="chip ${stdFilter==='冲压'?'on':''}" onclick="stdFilter='冲压';rStd()">冲压</div>
     </div>
+    <div class="hint">按工作内容分两组：① 新料号/新工序<b>首次测定</b>（最新版本为初版口径）；② 后续<b>变更复测更新</b>（工艺/工序/设备/检验标准变化后重测）。周期复测去「工时复测」页。</div>
   </div>
-  ${list.map(pnCard).join('')||'<div class="card"><div class="empty">没有符合条件的料号</div></div>'}
+  ${firsts.length?`<div class="card"><h3 style="color:var(--blue2)">① 首次测定（最新为初版）<span class="badge" style="background:var(--blue2)">${firsts.length}</span></h3></div>`:''}
+  ${firsts.map(pnCard).join('')}
+  ${ups.length?`<div class="card"><h3 style="color:var(--green)">② 变更后复测更新（已有新版本）<span class="badge" style="background:var(--green)">${ups.length}</span></h3></div>`:''}
+  ${ups.map(pnCard).join('')}
+  ${list.length?'':'<div class="card"><div class="empty">没有符合条件的料号</div></div>'}
   <div class="card"><button class="btn" style="width:100%" onclick="newPart()">＋ 新建料号工时台账</button>
-  <button class="btn ghost" style="width:100%;margin-top:8px" onclick="openTask(null,'stdtime')">＋ 新增测定事项</button></div>`;
+  <button class="btn ghost" style="width:100%;margin-top:8px" onclick="openTask(null,'measure')">＋ 新增测定事项</button></div>`;
 }
 function pnCard(p){
   const f=freshness(p);
@@ -588,6 +607,51 @@ function pnCard(p){
       <button class="btn sm gray" onclick="setCycle('${esc(p.pn)}')">复测周期</button>
     </div>
   </div>`;
+}
+
+/* ============ 工时复测 ============ */
+function rRt(){
+  const stale=DB.parts.filter(p=>freshness(p).lvl<3).sort((a,b)=>(freshness(a).m||0)<(freshness(b).m||0)?1:-1);
+  const over=stale.filter(p=>freshness(p).lvl===0);
+  const his=DB.parts.flatMap(p=>p.hours.filter(h=>h.reason&&h.reason!=='init').map(h=>({pn:p.pn,name:p.name,shop:p.shop,h})))
+    .sort((a,b)=>(b.h.date||'').localeCompare(a.h.date||'')).slice(0,12);
+  const mon=new Date().toISOString().slice(0,7);
+  const mCnt=DB.parts.reduce((s,p)=>s+p.hours.filter(h=>h.reason&&h.reason!=='init'&&monOf(h.date)===mon).length,0);
+  $('pg-rt').innerHTML=`
+  <div class="card">
+    <h3>⟳ 标准工时复测</h3>
+    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div><b style="color:var(--red)">${over.length}</b><span>已超期</span></div>
+      <div><b style="color:var(--amber)">${stale.length}</b><span>待复测/临期</span></div>
+      <div><b style="color:var(--green)">${mCnt}</b><span>本月复测次数</span></div>
+    </div>
+    <div class="hint">复测周期默认 6 个月，可按料号单独调整。工艺/工序/设备/检验标准变化后也应立即重测并记录变更原因。</div>
+  </div>
+  <div class="card">
+    <h3>⚠️ 待复测料号 <span class="badge" style="background:var(--amber)">${stale.length}</span></h3>
+    ${stale.length?stale.map(p=>{
+      const f=freshness(p);
+      return `<div class="tk" style="align-items:center">
+        <div class="dot" style="background:${f.color}"></div>
+        <div class="body">
+          <div class="ti" style="font-family:ui-monospace,monospace;font-size:12px">${esc(p.pn)}</div>
+          <div class="mt"><span>${esc(p.name)}</span><span>· ${esc(p.shop)}</span><span style="color:${f.color}">${f.txt}</span><span>下次复测 ${nextDate(p)}</span></div>
+        </div>
+        <button class="op" onclick="logVersion('${esc(p.pn)}')">复测</button>
+      </div>`}).join(''):'<div class="empty">全部在有效期内 ✓</div>'}
+  </div>
+  <div class="card">
+    <h3>📇 近期复测记录</h3>
+    ${his.length?his.map(x=>`<div class="tk" style="align-items:flex-start">
+      <div class="dot" style="background:${(rInfo(x.h.reason).color)||'#94a3b8'}"></div>
+      <div class="body">
+        <div class="ti">${esc(x.pn)} <span style="font-weight:400;color:var(--sub)">${esc(x.name)}</span></div>
+        <div class="mt"><span>${esc(x.h.date)}</span><span style="font-family:ui-monospace,monospace">${esc(x.h.ver)}</span>${tgReason(x.h.reason)}</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:4px;line-height:1.5">${esc(x.h.note||'')}</div>
+      </div>
+    </div>`).join(''):'<div class="empty">暂无复测记录</div>'}
+  </div>
+  <div class="card"><button class="btn ghost" style="width:100%" onclick="openTask(null,'retest')">＋ 新增复测事项</button></div>`;
 }
 
 /* ============ 计件方案 ============ */
@@ -1050,7 +1114,7 @@ function saveTask(id){
   if(!title){alert('请填写标题');return}
   const tc=document.querySelector('#tType .chip.on');
   const data={
-    title,type:tc?tc.dataset.k:'stdtime',pn:$('tPn').value.trim(),
+    title,type:tc?tc.dataset.k:'measure',pn:$('tPn').value.trim(),
     due:$('tDue').value,pri:$('tPri').value,stage:$('tStage').value,
     detail:$('tDetail').value.trim()
   };
