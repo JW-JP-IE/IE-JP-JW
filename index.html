@@ -166,6 +166,12 @@ window.SEED = {
   shops: ['钣金','焊接','喷涂','喷粉','电泳','装配','冲压','圣龙'],
   /* 料号台账（工时版本追踪的核心） */
   partNos: [
+    { pn:'512110003237_H', name:'新能安12模组机柜', shop:'钣金/冲压/电泳/喷涂/装配', cat:'储能柜',
+      hours:[
+        {ver:'V2.0', date:'2026-10-22', total:111721.61, unit:'s', reason:'proc', by:'江微', note:'新能安3237_H标准工时（WI-JB-005-A001 V2.0）：40台/班次口径，211 道工序全展开，总成工时 111721.6s，人力总计 127.8 人。人力分布：钣金车间 51.5（数控/折弯/压铆/焊接主线/补焊打磨检验）、电泳 6、喷涂 29、装配 20.4。10/12→10/22 差异：框架人工补焊节拍 886.65→766.05s、框架打磨 1158.85→1054.2s（焊道优化+熟练度提升），补焊人力 5→7'},
+        {ver:'V1.0', date:'2026-01-27', total:0, unit:'s', reason:'init', by:'江微', note:'20台/班次口径初版，人力 75.5 人；后续 25台/班次版本人力 81.5 人、40台/班次 133.5 人'}
+      ],
+      lastUpdate:'2026-10-22', cycleMonth:6 },
     { pn:'500111-00163', name:'下箱体_辊压（Ener Dmax）', shop:'焊接/装配', cat:'辊压箱',
       hours:[
         {ver:'V2.0', date:'2026-10-08', total:9706.63, unit:'s', note:'总成工时更新，明细至20261013版', reason:'craft', by:'江微'},
@@ -282,7 +288,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:4,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:5,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -291,19 +297,26 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>4)return seedData();
-    if(d.v<4){
+    if(!d||d.v<2||d.v>5)return seedData();
+    if(d.v<5){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
         const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
         (d.tasks||[]).concat(d.bens||[]).forEach(x=>{x.type=AL[x.type]||x.type});
       }
       d.types=window.SEED.types.map(t=>({...t}));
-      /* v4：028 储能柜框架总成 补全 V1.0/V2.0/V3.0 版本履历 */
-      const p28=(d.parts||[]).find(p=>p.pn==='10304000028');
-      const seed28=window.SEED.partNos.find(p=>p.pn==='10304000028');
-      if(p28&&seed28){p28.hours=JSON.parse(JSON.stringify(seed28.hours));p28.lastUpdate=seed28.lastUpdate}
-      d.v=4;
+      /* 按料号增量同步 seed 中的版本履历（只覆盖指定料号） */
+      const sync=pns=>pns.forEach(pn=>{
+        const sp=window.SEED.partNos.find(p=>p.pn===pn);
+        const dp=(d.parts||[]).find(p=>p.pn===pn);
+        if(!sp)return;
+        const hs=JSON.parse(JSON.stringify(sp.hours));
+        if(dp){dp.hours=hs;dp.lastUpdate=sp.lastUpdate;dp.name=sp.name;dp.shop=sp.shop;dp.cat=sp.cat}
+        else (d.parts=d.parts||[]).push(JSON.parse(JSON.stringify(sp)));
+      });
+      if(d.v<4)sync(['10304000028']);
+      sync(['512110003237_H']);
+      d.v=5;
     }
     return d;
   }catch(e){return seedData()}
