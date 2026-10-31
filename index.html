@@ -206,8 +206,12 @@ window.SEED = {
       hours:[{ver:'V1.1', date:'2026-05-15', total:0, unit:'s', note:'水冷板焊道打胶+防爆阀改气密前安装，节拍+30s', reason:'craft', by:'江微'}],
       lastUpdate:'2026-05-15', cycleMonth:6 },
     { pn:'10304000028', name:'储能柜框架总成', shop:'钣金/喷涂/电泳/装配', cat:'储能柜',
-      hours:[{ver:'V1.0', date:'2026-01-23', total:0, unit:'s', note:'53款下料/45款折弯/17款压铆/11款人工焊/12款打磨/陶化 全工序测定', reason:'init', by:'江微'}],
-      lastUpdate:'2026-01-23', cycleMonth:6 },
+      hours:[
+        {ver:'V3.0', date:'2026-10-19', total:0, unit:'s', reason:'skill', by:'江微、旦其洪', note:'稳定量产后第二次更新：产能25→40台/天(+60%)按40台重编；钣金(焊接主线)39738.3→32831.4s(-6906.9s,-17.4%，占81%)：补焊/除渣/检验/打磨四道工序递减+焊道优化+补焊熟练度提升，取消2站机器人补焊站、新增返修1890s；装配20321.3→18728.8s(-1592.4s,-7.8%，占19%)：顶盖打胶3→7人、前大门配件组装3→4人工序重排，客户取消26根/套支撑导轨涂漆。总工时合计减少8499.3s，降幅7.07%'},
+        {ver:'V2.0', date:'2026-04-20', total:0, unit:'s', reason:'craft', by:'江微', note:'稳定量产后第一次更新（10项工艺变更）：①支撑导轨改冲压下料+冲孔折小弯 ②焊接加强件折弯改冲压成型 ③地脚件改打磨处切割打磨 ④文件夹陶化改电泳、喷粉遮蔽前置电泳且下挂不拆遮蔽 ⑤大门门板增加烤火+整平 ⑥焊接主线拆分大门/配件焊接站 ⑦增加OP70、OP80补焊站 ⑧拆遮蔽随工序转喷涂车间 ⑨底盖取消焊接+打磨 ⑩大门二保焊改激光填丝焊。总工时合计减少8917s，降幅7.4%'},
+        {ver:'V1.0', date:'2026-01-27', total:0, unit:'s', reason:'init', by:'江微', note:'初步量产100套，测定标准工时（53款下料/45款折弯/17款压铆/11款人工焊/12款打磨/陶化 全工序测定）'}
+      ],
+      lastUpdate:'2026-10-19', cycleMonth:6 },
     { pn:'20800000952', name:'辊压箱喷涂件（82喷PVC）', shop:'喷涂', cat:'辊压箱',
       hours:[{ver:'V1.1', date:'2026-01-08', total:0, unit:'s', note:'自动喷改手工喷，UPPH上升27.8%，计件单价重算', reason:'proc', by:'江微'}],
       lastUpdate:'2026-01-08', cycleMonth:6 },
@@ -278,7 +282,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:3,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:4,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -287,13 +291,19 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||(d.v!==2&&d.v!==3))return seedData();
-    if(d.v===2){
-      /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
-      const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
-      (d.tasks||[]).concat(d.bens||[]).forEach(x=>{x.type=AL[x.type]||x.type});
+    if(!d||d.v<2||d.v>4)return seedData();
+    if(d.v<4){
+      if(d.v===2){
+        /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
+        const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
+        (d.tasks||[]).concat(d.bens||[]).forEach(x=>{x.type=AL[x.type]||x.type});
+      }
       d.types=window.SEED.types.map(t=>({...t}));
-      d.v=3;
+      /* v4：028 储能柜框架总成 补全 V1.0/V2.0/V3.0 版本履历 */
+      const p28=(d.parts||[]).find(p=>p.pn==='10304000028');
+      const seed28=window.SEED.partNos.find(p=>p.pn==='10304000028');
+      if(p28&&seed28){p28.hours=JSON.parse(JSON.stringify(seed28.hours));p28.lastUpdate=seed28.lastUpdate}
+      d.v=4;
     }
     return d;
   }catch(e){return seedData()}
