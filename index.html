@@ -359,13 +359,25 @@ function nextDate(p){
   const q=n=>String(n).padStart(2,'0');
   return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate());
 }
+/* 待复测：排除已标记生命周期结束（无需复测）的料号 */
+const isStale=p=>!p.eol&&freshness(p).lvl<3;
+function setEol(pn,eol){
+  const p=DB.parts.find(x=>x.pn===pn);if(!p)return;
+  if(eol){
+    if(!confirm('将 '+pn+' 标记为「无需复测」？\n适用于产品生命周期已结束、不再生产的情况。\n标记后不再出现在待复测提醒中，可随时恢复。'))return;
+    p.eol=true;p.eolDate=today();
+  }else{
+    delete p.eol;delete p.eolDate;
+  }
+  save();
+}
 /* 汇总 */
 function sum(){
   const tasks=DB.tasks;
   const open=tasks.filter(t=>t.stage!=='done');
   const benM=DB.bens.filter(b=>b.unit&&b.unit.indexOf('月')>=0).reduce((s,b)=>s+(+b.money||0),0);
   const benY=DB.bens.filter(b=>b.unit&&b.unit.indexOf('年')>=0).reduce((s,b)=>s+(+b.money||0),0);
-  const stale=DB.parts.filter(p=>freshness(p).lvl<3).length;
+  const stale=DB.parts.filter(isStale).length;
   const over=tasks.filter(t=>t.stage!=='done'&&t.due&&t.due<today()).length;
   const hours=DB.parts.reduce((s,p)=>s+(p.hours.length||0),0);
   return {open:open.length,benM,benY,stale,over,parts:DB.parts.length,vers:hours,tasks:tasks.length};
@@ -424,7 +436,7 @@ function rHome(){
   const s=sum();
   const open=DB.tasks.filter(t=>t.stage!=='done');
   const urgent=open.filter(t=>t.due&&dDiff(today(),t.due)<=3).sort((a,b)=>(a.due||'').localeCompare(b.due||''));
-  const stale=DB.parts.filter(p=>freshness(p).lvl<3).sort((a,b)=>(freshness(a).m||0)<(freshness(b).m||0)?1:-1);
+  const stale=DB.parts.filter(isStale).sort((a,b)=>(freshness(a).m||0)<(freshness(b).m||0)?1:-1);
   const cntByType=k=>DB.tasks.filter(t=>t.type===k&&t.stage!=='done').length;
   const pnByType=k=>DB.parts.filter(p=>{
     if(k==='measure')return true;
@@ -461,7 +473,20 @@ function rHome(){
   </div>
 
   <div class="card">
-    <h3>⚠️ 待复测料号 <span class="badge">${stale.length}</span><span class="more" onclick="go('std')">管理 →</span></h3>
+    <h3>▶ 进行中的工作事项 <span class="badge" style="background:var(--blue2)">${open.filter(t=>t.stage==='running').length}</span><span class="more" onclick="go('rep')">全部 →</span></h3>
+    ${(()=>{const r=open.filter(t=>t.stage==='running').sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));
+      return r.length?r.slice(0,5).map(t=>taskRow(t)).join(''):'<div class="empty">暂无进行中的事项</div>'})()}
+    <button class="btn ghost sm" style="margin-top:9px" onclick="openTask()">＋ 新增工作事项</button>
+  </div>
+
+  <div class="card">
+    <h3>✅ 最近完成 <span class="more" onclick="go('rep')">工作总结 →</span></h3>
+    ${(()=>{const dn=DB.tasks.filter(t=>t.stage==='done').sort((a,b)=>(b.doneAt||b.created||'').localeCompare(a.doneAt||a.created||'')).slice(0,5);
+      return dn.length?dn.map(t=>taskRow(t)).join(''):'<div class="empty">暂无已完成事项</div>'})()}
+  </div>
+
+  <div class="card">
+    <h3>⚠️ 待复测料号 <span class="badge">${stale.length}</span><span class="more" onclick="go('rt')">管理 →</span></h3>
     <div class="hint" style="margin-top:0;margin-bottom:8px">标准工时超过复测周期（默认 6 个月）未更新的料号，审计时容易被追问。</div>
     ${stale.length?stale.slice(0,5).map(p=>{
       const f=freshness(p);
@@ -594,7 +619,7 @@ function rStd(){
   <button class="btn ghost" style="width:100%;margin-top:8px" onclick="openTask(null,'measure')">＋ 新增测定事项</button></div>`;
 }
 function pnCard(p){
-  const f=freshness(p);
+  const f=p.eol?{lvl:3,txt:'无需复测',color:'#64748b',m:ageMonths(p.lastUpdate)}:freshness(p);
   const vs=p.hours.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const latest=vs[0];
   return `<div class="pn">
@@ -603,7 +628,7 @@ function pnCard(p){
         <div class="code">${esc(p.pn)}</div>
         <div class="nm">${esc(p.name)}</div>
       </div>
-      <span class="tg" style="background:${f.color}18;color:${f.color};flex-shrink:0">${f.txt}</span>
+      <span class="tg" style="background:${p.eol?'#64748b18':'var(--sub)'};color:${p.eol?'#64748b':f.color};flex-shrink:0">${p.eol?'无需复测':f.txt}</span>
     </div>
     <div class="info">
       <div><span>车间</span><b>${esc(p.shop)}</b></div>
@@ -634,21 +659,23 @@ function pnCard(p){
 
 /* ============ 工时复测 ============ */
 function rRt(){
-  const stale=DB.parts.filter(p=>freshness(p).lvl<3).sort((a,b)=>(freshness(a).m||0)<(freshness(b).m||0)?1:-1);
+  const stale=DB.parts.filter(isStale).sort((a,b)=>(freshness(a).m||0)<(freshness(b).m||0)?1:-1);
   const over=stale.filter(p=>freshness(p).lvl===0);
   const his=DB.parts.flatMap(p=>p.hours.filter(h=>h.reason&&h.reason!=='init').map(h=>({pn:p.pn,name:p.name,shop:p.shop,h})))
     .sort((a,b)=>(b.h.date||'').localeCompare(a.h.date||'')).slice(0,12);
   const mon=new Date().toISOString().slice(0,7);
   const mCnt=DB.parts.reduce((s,p)=>s+p.hours.filter(h=>h.reason&&h.reason!=='init'&&monOf(h.date)===mon).length,0);
+  const eols=DB.parts.filter(p=>p.eol);
   $('pg-rt').innerHTML=`
   <div class="card">
     <h3>⟳ 标准工时复测</h3>
-    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+    <div class="kpi" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px">
       <div><b style="color:var(--red)">${over.length}</b><span>已超期</span></div>
       <div><b style="color:var(--amber)">${stale.length}</b><span>待复测/临期</span></div>
       <div><b style="color:var(--green)">${mCnt}</b><span>本月复测次数</span></div>
+      <div><b style="color:var(--sub)">${eols.length}</b><span>无需复测</span></div>
     </div>
-    <div class="hint">复测周期默认 6 个月，可按料号单独调整。工艺/工序/设备/检验标准变化后也应立即重测并记录变更原因。</div>
+    <div class="hint">复测周期默认 6 个月，可按料号单独调整。工艺/工序/设备/检验标准变化后也应立即重测并记录变更原因。产品生命周期结束的料号可标记「无需复测」，不再提醒。</div>
   </div>
   <div class="card">
     <h3>⚠️ 待复测料号 <span class="badge" style="background:var(--amber)">${stale.length}</span></h3>
@@ -660,9 +687,23 @@ function rRt(){
           <div class="ti" style="font-family:ui-monospace,monospace;font-size:12px">${esc(p.pn)}</div>
           <div class="mt"><span>${esc(p.name)}</span><span>· ${esc(p.shop)}</span><span style="color:${f.color}">${f.txt}</span><span>下次复测 ${nextDate(p)}</span></div>
         </div>
-        <button class="op" onclick="logVersion('${esc(p.pn)}')">复测</button>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="op" onclick="logVersion('${esc(p.pn)}')">复测</button>
+          <button class="op" onclick="setEol('${esc(p.pn)}',true)">无需复测</button>
+        </div>
       </div>`}).join(''):'<div class="empty">全部在有效期内 ✓</div>'}
   </div>
+  ${eols.length?`<div class="card">
+    <h3>🚫 无需复测（生命周期结束）<span class="badge">${eols.length}</span></h3>
+    ${eols.map(p=>`<div class="tk" style="align-items:center">
+      <div class="dot" style="background:var(--sub)"></div>
+      <div class="body">
+        <div class="ti" style="font-family:ui-monospace,monospace;font-size:12px">${esc(p.pn)}</div>
+        <div class="mt"><span>${esc(p.name)}</span><span>· ${esc(p.shop)}</span>${p.eolDate?`<span>标记于 ${esc(p.eolDate)}</span>`:''}</div>
+      </div>
+      <button class="op" onclick="setEol('${esc(p.pn)}',false)">恢复复测</button>
+    </div>`).join('')}
+  </div>`:''}
   <div class="card">
     <h3>📇 近期复测记录</h3>
     ${his.length?his.map(x=>`<div class="tk" style="align-items:flex-start">
