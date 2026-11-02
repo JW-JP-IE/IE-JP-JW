@@ -370,14 +370,43 @@ function nextDate(p){
 }
 /* 待复测：排除已标记生命周期结束（无需复测）的料号 */
 const isStale=p=>!p.eol&&freshness(p).lvl<3;
-function setEol(pn,eol){
+const EOL_REASONS=[
+  {k:'eol',  n:'产品生命周期结束（停产不再接单）'},
+  {k:'pause',n:'项目暂停/未生产'},
+  {k:'low',  n:'优先级不高（低频小批量暂缓）'},
+  {k:'repl', n:'料号已替代/作废（新版号取代）'},
+  {k:'cancel',n:'客户取消/订单终止'},
+  {k:'other',n:'其他'}
+];
+function setEol(pn){
   const p=DB.parts.find(x=>x.pn===pn);if(!p)return;
-  if(eol){
-    if(!confirm('将 '+pn+' 标记为「无需复测」？\n适用于产品生命周期已结束、不再生产的情况。\n标记后不再出现在待复测提醒中，可随时恢复。'))return;
-    p.eol=true;p.eolDate=today();
-  }else{
-    delete p.eol;delete p.eolDate;
-  }
+  openModal(`<h3>🚫 标记无需复测</h3>
+  <div class="hint" style="margin-top:0">${esc(p.pn)} · ${esc(p.name)}</div>
+  <label>原因 *</label>
+  <div class="chips" id="eolRs">${EOL_REASONS.map(r=>`<div class="chip" data-k="${r.k}" title="${r.n}">${esc(r.n.split('（')[0])}</div>`).join('')}</div>
+  <label>补充说明</label><textarea id="eolNote" placeholder="可填具体情况，如：客户已切换至 512110003237_H"></textarea>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveEol('${esc(pn)}')">确认标记</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>`);
+  document.querySelectorAll('#eolRs .chip').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('#eolRs .chip').forEach(x=>x.classList.remove('on'));
+      c.classList.add('on');
+    });
+  });
+}
+function saveEol(pn){
+  const c=document.querySelector('#eolRs .chip.on');
+  if(!c){alert('请选择原因');return}
+  const p=DB.parts.find(x=>x.pn===pn);if(!p)return;
+  p.eol=true;p.eolDate=today();p.eolReason=c.dataset.k;p.eolNote=$('eolNote').value.trim();
+  save();closeModal();
+}
+function unEol(pn){
+  const p=DB.parts.find(x=>x.pn===pn);if(!p)return;
+  if(!confirm('恢复 '+pn+' 的复测提醒？'))return;
+  delete p.eol;delete p.eolDate;delete p.eolReason;delete p.eolNote;
   save();
 }
 /* 汇总 */
@@ -698,20 +727,23 @@ function rRt(){
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="op" onclick="logVersion('${esc(p.pn)}')">复测</button>
-          <button class="op" onclick="setEol('${esc(p.pn)}',true)">无需复测</button>
+          <button class="op" onclick="setEol('${esc(p.pn)}')">无需复测</button>
         </div>
       </div>`}).join(''):'<div class="empty">全部在有效期内 ✓</div>'}
   </div>
   ${eols.length?`<div class="card">
     <h3>🚫 无需复测（生命周期结束）<span class="badge">${eols.length}</span></h3>
-    ${eols.map(p=>`<div class="tk" style="align-items:center">
+    ${eols.map(p=>{
+      const er=EOL_REASONS.find(r=>r.k===p.eolReason);
+      return `<div class="tk" style="align-items:center">
       <div class="dot" style="background:var(--sub)"></div>
       <div class="body">
         <div class="ti" style="font-family:ui-monospace,monospace;font-size:12px">${esc(p.pn)}</div>
         <div class="mt"><span>${esc(p.name)}</span><span>· ${esc(p.shop)}</span>${p.eolDate?`<span>标记于 ${esc(p.eolDate)}</span>`:''}</div>
+        ${er?`<div style="font-size:11px;color:var(--sub);margin-top:3px">原因：${esc(er.n)}${p.eolNote?'<br>备注：'+esc(p.eolNote):''}</div>`:''}
       </div>
-      <button class="op" onclick="setEol('${esc(p.pn)}',false)">恢复复测</button>
-    </div>`).join('')}
+      <button class="op" onclick="unEol('${esc(p.pn)}')">恢复复测</button>
+    </div>`}).join('')}
   </div>`:''}
   <div class="card">
     <h3>📇 近期复测记录</h3>
