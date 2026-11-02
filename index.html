@@ -496,11 +496,13 @@ function rHome(){
   <div class="card">
     <h3>▦ 六大工作板块</h3>
     <div class="blocks">
-      ${DB.types.map(t=>`<div class="blk" style="border-left-color:${t.color}" onclick="go('${pageOf(t.key)}')">
+      ${(()=>{const tot=DB.types.reduce((s,t)=>s+cntOf(t.key),0)||1;
+        return DB.types.map(t=>{const c=cntOf(t.key);
+        return `<div class="blk" style="border-left-color:${t.color}" onclick="go('${pageOf(t.key)}')">
           <div class="n">${esc(t.name)}</div>
           <div class="d">${esc(t.desc)}</div>
-          <div class="c" style="color:${t.color}">${cntOf(t.key)}</div>
-        </div>`).join('')}
+          <div class="c" style="color:${t.color}">${c}<span style="font-size:9px;font-weight:500;margin-left:3px">${Math.round(c/tot*100)}%</span></div>
+        </div>`}).join('')})()}
     </div>
   </div>
 
