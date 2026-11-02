@@ -250,6 +250,8 @@ window.SEED = {
       detail:'上下料90s→60s、焊接140s→120s，目标单班200台' },
     { title:'新能安计件实施效果月度跟踪', type:'jijian', pn:'', due:'2026-11-15', pri:'mid', stage:'running',
       detail:'跟踪人力、产能、单台成本三项指标' },
+    { title:'新能安3237_H 4月版vs10月版工时对比', type:'retest', pn:'512110003237_H', due:'2026-11-06', pri:'high', stage:'running',
+      detail:'2026-11-02上午下达。对比 20260420 版（25台/班次，人力81.5人）与 20261022 版（40台/班次，人力127.8人）：梳理211道工序中补焊、打磨、检验等节拍递减项与人力变化，输出版本对比报告' },
     { title:'标准工时管理办法OA流程落地', type:'audit', pn:'', due:'2026-11-20', pri:'low', stage:'todo',
       detail:'流程图梳理完成，待OA系统配置' }
   ],
@@ -288,7 +290,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:5,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:6,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -297,8 +299,8 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>5)return seedData();
-    if(d.v<5){
+    if(!d||d.v<2||d.v>6)return seedData();
+    if(d.v<6){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
         const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
@@ -316,7 +318,14 @@ function load(){
       });
       if(d.v<4)sync(['10304000028']);
       sync(['512110003237_H']);
-      d.v=5;
+      /* v6：追加新下达事项（按标题去重，避免重复添加） */
+      window.SEED.tasks.forEach(t=>{
+        if(!(d.tasks||[]).some(x=>x.title===t.title)){
+          (d.tasks=d.tasks||[]).push({id:uid(),title:t.title,type:t.type,pn:t.pn||'',due:t.due||'',
+            pri:t.pri||'mid',stage:t.stage||'todo',detail:t.detail||'',reason:'',hours:0,created:nowISO(),done:false});
+        }
+      });
+      d.v=6;
     }
     return d;
   }catch(e){return seedData()}
