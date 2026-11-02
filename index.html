@@ -458,10 +458,10 @@ function rHome(){
 
   $('pg-home').innerHTML=`
   <div class="kpi">
-    <div><b style="color:var(--blue2)">${s.open}</b><span>在办事项</span></div>
-    <div><b style="color:var(--red)">${s.over}</b><span>已超期</span></div>
-    <div><b style="color:var(--amber)">${s.stale}</b><span>待复测料号</span></div>
-    <div><b style="color:var(--green)">${(s.benM/10000).toFixed(1)}万</b><span>月效益(元)</span></div>
+    <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--blue2)">${s.open}</b><span>在办事项</span></div>
+    <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--red)">${s.over}</b><span>已超期</span></div>
+    <div style="cursor:pointer" onclick="go('rt')"><b style="color:var(--amber)">${s.stale}</b><span>待复测料号</span></div>
+    <div style="cursor:pointer" onclick="go('ben')"><b style="color:var(--green)">${(s.benM/10000).toFixed(1)}万</b><span>月效益(元)</span></div>
   </div>
 
   <div class="card">
