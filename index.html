@@ -151,8 +151,7 @@ window.SEED = {
     { key:'retest',   name:'标准工时复测', short:'工时复测', color:'#0ea5a5', desc:'周期复测、变更后重测、版本更新' },
     { key:'jijian',   name:'计件单价制定', short:'计件方案', color:'#e5484d', desc:'单价制定/下调、超产激励、阶梯档位' },
     { key:'manpower', name:'新项目人力评估', short:'人力评估', color:'#7c5cff', desc:'按产能需求评估双班人力与工序明细' },
-    { key:'finance',  name:'财务成本数据', short:'财务支持', color:'#f59e0b', desc:'按月提供总成工时、差异占比分析' },
-    { key:'audit',    name:'审计佐证', short:'审计佐证', color:'#d97706', desc:'工时变动差异分析、佐证材料与标准文件' }
+    { key:'finance',  name:'财务成本数据', short:'财务支持', color:'#f59e0b', desc:'按月提供总成工时、差异占比分析、审计佐证材料' }
   ],
   /* 变更归因（用于说明工时为什么变） */
   reasons: [
@@ -252,7 +251,7 @@ window.SEED = {
       detail:'跟踪人力、产能、单台成本三项指标' },
     { title:'新能安3237_H 4月版vs10月版工时对比', type:'retest', pn:'512110003237_H', due:'2026-11-06', pri:'high', stage:'running',
       detail:'2026-11-02上午下达。对比 20260420 版（25台/班次，人力81.5人）与 20261022 版（40台/班次，人力127.8人）：梳理211道工序中补焊、打磨、检验等节拍递减项与人力变化，输出版本对比报告' },
-    { title:'标准工时管理办法OA流程落地', type:'audit', pn:'', due:'2026-11-20', pri:'low', stage:'todo',
+    { title:'标准工时管理办法OA流程落地', type:'finance', pn:'', due:'2026-11-20', pri:'low', stage:'todo',
       detail:'流程图梳理完成，待OA系统配置' }
   ],
   /* 月度记录（真实条数） */
@@ -290,7 +289,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:6,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:7,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -299,8 +298,8 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>6)return seedData();
-    if(d.v<6){
+    if(!d||d.v<2||d.v>7)return seedData();
+    if(d.v<7){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
         const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
@@ -318,14 +317,17 @@ function load(){
       });
       if(d.v<4)sync(['10304000028']);
       sync(['512110003237_H']);
-      /* v6：追加新下达事项（按标题去重，避免重复添加） */
+      /* 追加新下达事项（按标题去重，避免重复添加） */
       window.SEED.tasks.forEach(t=>{
         if(!(d.tasks||[]).some(x=>x.title===t.title)){
           (d.tasks=d.tasks||[]).push({id:uid(),title:t.title,type:t.type,pn:t.pn||'',due:t.due||'',
             pri:t.pri||'mid',stage:t.stage||'todo',detail:t.detail||'',reason:'',hours:0,created:nowISO(),done:false});
         }
       });
-      d.v=6;
+      /* v7：取消「审计佐证」模块，全部并入「财务成本数据」 */
+      const AL2={audit:'finance'};
+      (d.tasks||[]).concat(d.bens||[]).forEach(x=>{x.type=AL2[x.type]||x.type});
+      d.v=7;
     }
     return d;
   }catch(e){return seedData()}
@@ -494,7 +496,7 @@ function rHome(){
   </div>
 
   <div class="card">
-    <h3>▦ 六大工作板块</h3>
+    <h3>▦ 工作板块</h3>
     <div class="blocks">
       ${(()=>{const tot=DB.types.reduce((s,t)=>s+cntOf(t.key),0)||1;
         const mx=Math.max(...DB.types.map(t=>cntOf(t.key)),1);
