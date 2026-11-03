@@ -229,13 +229,13 @@ window.SEED = {
     { date:'2026-06-20', title:'新能安计件方案首月成效', pn:'', type:'jijian', money:22357, unit:'元/月', state:'steady',
       desc:'人力85→82人，产能+6.3%，单台人工成本-31元', reason:'proc', verified:true },
     { date:'2026-10-22', title:'新能安钣金计件单价下调', pn:'', type:'jijian', money:15077, unit:'元/月', state:'steady',
-      desc:'框架补焊57→49元(-14%)、打磨32→25元(-28.1%)，退出底薪2.5人。28天口径约15,077元/月（26天口径14,000元），年化约18.1万元', reason:'proc', verified:false },
+      desc:'框架补焊57→49元(-14%)、打磨32→25元(-28.1%)，退出底薪2.5人。28天口径约15,077元/月，年化约18.1万元', reason:'proc', verified:false },
     { date:'2026-09-10', title:'新能安装配线超产调整', pn:'', type:'jijian', money:0, unit:'元/月', state:'steady',
       desc:'导轨切边取消银漆，单价154→140元/台，人力22→20人，人均产能+10%', reason:'proc', verified:true },
     { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'measure', money:0, unit:'元/年', state:'stopped',
       desc:'遮蔽/喷PVC/烘烤/拆遮蔽 全工序改善，UPPH +27.8%', reason:'proc', verified:true },
-    { date:'2026-11-03', title:'136装配/气密计件单价下调（28天口径）', pn:'500111-00136', type:'jijian', money:14994, unit:'元/月', state:'steady',
-      desc:'装配 20.0→18.3元/件（-8.5%，21人）、气密 2.62→2.45元/件（-6.5%，3人）。28天口径：285台/天月节约 14,994 元（区间 14,756~15,232 元/月，280~290台），年化约 18.0 万元；26天口径为 13,923 元。员工端（28天）：装配人均 -646 元、气密 -476 元；追回原收入产能门槛：装配 285→300 台、气密 300→315 台（各+15台，约+5%）。前提：旧体系超封顶档（装配270台、气密290台）仍按封顶单价计件', reason:'proc', verified:false },
+    { date:'2026-11-03', title:'136装配/气密计件单价下调', pn:'500111-00136', type:'jijian', money:14994, unit:'元/月', state:'steady',
+      desc:'装配 20.0→18.3元/件（-8.5%，21人）、气密 2.62→2.45元/件（-6.5%，3人）。28天口径：285台/天月节约 14,994 元（区间 14,756~15,232 元/月，280~290台），年化约 18.0 万元。员工端：装配人均 -646 元、气密 -476 元；追回原收入产能门槛：装配 285→300 台、气密 300→315 台（各+15台，约+5%）。前提：旧体系超封顶档（装配270台、气密290台）仍按封顶单价计件', reason:'proc', verified:false },
     { date:'2026-03-10', title:'特殊工序计件改革·82辊压框架总成（焊接线/补焊/打磨，已停产）', pn:'500111-00082', type:'jijian', money:8308, unit:'元/月', state:'stopped', endMonth:'2026-05',
       desc:'取消焊工补助80元/天等岗位补助，改从1计件+等级薪酬。两个口径分摊：「计件+超产方案」−8,308 + 「超产模式」−5,612 = −13,920元/月。3~5月在产3个月，累计节约约41,760元后项目停产', reason:'proc', verified:false },
     { date:'2026-03-10', title:'特殊工序计件改革·084喷胶', pn:'500111-00084', type:'jijian', money:333, unit:'元/月', state:'steady',
@@ -261,7 +261,7 @@ window.SEED = {
     { date:'2026-03-10', title:'超产激励模式·087-01（拉铆）', pn:'500111-00087', type:'jijian', money:430, unit:'元/月', state:'phased',
       desc:'拉铆1人（重点工），起始产能238/现状265台，超产单价3.6元/人·台，人均月超产2,722元。净节约分摊−430元/月。与「从1计件」分摊−1,577元/月合计−2,007元/月。阶段性在产', reason:'proc', verified:false },
     { date:'2026-09-10', title:'新能安装配线体调整（人力精简+超产单价下调）', pn:'', type:'jijian', money:13242, unit:'元/月', state:'steady',
-      desc:'单班目标40台不变，人力22→20人（人均产能+10%）；超产单价154→140元/台、门槛27台不变，员工个人超产奖金维持2548元/月不变。28天口径：人均月成本=基础3600+奖金2548=6148元，精简2人净省13,242元/月，年化约15.9万元；月产1120台，装配人工成本121.9→114.1元/台（-6.4%）。26天口径为12,296元。前提：精简2人为真实转出，超产14台/天', reason:'proc', verified:false },
+      desc:'单班目标40台不变，人力22→20人（人均产能+10%）；超产单价154→140元/台、门槛27台不变，员工个人超产奖金维持2548元/月不变。28天口径：人均月成本=基础3600+奖金2548=6148元，精简2人净省13,242元/月，年化约15.9万元；月产1120台，装配人工成本121.9→114.1元/台（-6.4%）。前提：精简2人为真实转出，超产14台/天', reason:'proc', verified:false },
     { date:'2026-10-25', title:'A1项目产能差异查明', pn:'500105-00469', type:'manpower', money:0, unit:'', state:'phased',
       desc:'人力181→375人(+194)，同人力产能低52%，单台工时1.65万→3.67万秒', reason:'craft', verified:true }
   ],
@@ -326,7 +326,7 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>15)return seedData();
+    if(!d||d.v<2||d.v>16)return seedData();
     if(d.v<14){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
@@ -395,6 +395,20 @@ function load(){
         else (d.bens=d.bens||[]).push({id:uid(),...b});
       });
       d.v=15;
+    }
+    /* v16：效益口径统一为 28 天/月，说明文字去除 26 天备注，全量同步 */
+    if(d.v<16){
+      /* 标题改名：136 条目去掉口径后缀（迁移按标题匹配，需先改名） */
+      (d.bens||[]).forEach(b=>{
+        if(b.title==='136装配/气密计件单价下调（28天口径）')b.title='136装配/气密计件单价下调';
+      });
+      window.SEED.benefits.forEach(b=>{
+        const db=(d.bens||[]).find(x=>x.title===b.title);
+        if(db){db.money=b.money;db.desc=b.desc;db.date=b.date;db.state=b.state||'steady';
+          if(b.endMonth)db.endMonth=b.endMonth;else delete db.endMonth;}
+        else (d.bens=d.bens||[]).push({id:uid(),...b});
+      });
+      d.v=16;
     }
     return d;
   }catch(e){return seedData()}
