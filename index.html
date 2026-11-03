@@ -228,18 +228,18 @@ window.SEED = {
   benefits: [
     { date:'2026-06-20', title:'新能安计件方案首月成效', pn:'', type:'jijian', money:22357, unit:'元/月',
       desc:'人力85→82人，产能+6.3%，单台人工成本-31元', reason:'proc', verified:true },
-    { date:'2026-10-22', title:'新能安钣金计件单价下调', pn:'', type:'jijian', money:14000, unit:'元/月',
-      desc:'框架补焊57→49元(-14%)、打磨32→25元(-28.1%)，退出底薪2.5人', reason:'proc', verified:false },
+    { date:'2026-10-22', title:'新能安钣金计件单价下调', pn:'', type:'jijian', money:15077, unit:'元/月',
+      desc:'框架补焊57→49元(-14%)、打磨32→25元(-28.1%)，退出底薪2.5人。28天口径约15,077元/月（26天口径14,000元），年化约18.1万元', reason:'proc', verified:false },
     { date:'2026-09-10', title:'新能安装配线超产调整', pn:'', type:'jijian', money:0, unit:'元/月',
       desc:'导轨切边取消银漆，单价154→140元/台，人力22→20人，人均产能+10%', reason:'proc', verified:true },
     { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'measure', money:0, unit:'元/年',
       desc:'遮蔽/喷PVC/烘烤/拆遮蔽 全工序改善，UPPH +27.8%', reason:'proc', verified:true },
-    { date:'2026-11-03', title:'136装配/气密计件单价下调（26天口径）', pn:'500111-00136', type:'jijian', money:13923, unit:'元/月',
-      desc:'装配 20.0→18.3元/件（-8.5%，21人）、气密 2.62→2.45元/件（-6.5%，3人）；285台/天口径月节约 13,923 元，区间 13,702~14,144 元/月（280~290台），年化约 16.7 万元。员工端：装配人均 -600 元/月、气密 -442 元/月；追回原收入产能门槛：装配 285→300 台（人均+112）、气密 300→315 台（人均+13）。注意：新版档位尚无签核日期，财务按旧档结算时节约不体现；28天口径为 1.50 万/月（口径差异约7.7%）', reason:'proc', verified:false },
+    { date:'2026-11-03', title:'136装配/气密计件单价下调（28天口径）', pn:'500111-00136', type:'jijian', money:14994, unit:'元/月',
+      desc:'装配 20.0→18.3元/件（-8.5%，21人）、气密 2.62→2.45元/件（-6.5%，3人）。28天口径：285台/天月节约 14,994 元（区间 14,756~15,232 元/月，280~290台），年化约 18.0 万元；26天口径为 13,923 元。员工端（28天）：装配人均 -646 元、气密 -476 元；追回原收入产能门槛：装配 285→300 台、气密 300→315 台（各+15台，约+5%）。前提：旧体系超封顶档（装配270台、气密290台）仍按封顶单价计件', reason:'proc', verified:false },
     { date:'2026-03-10', title:'特殊工序超产计件及等级薪酬体系调整（BC3/082系列）', pn:'500111-00082', type:'jijian', money:18000, unit:'元/月',
       desc:'取消补焊/打磨/拉铆/喷胶等特殊工序岗位补助（焊工80元/天、打磨50~80元/天、喷胶50元/天），改为「从1计件+等级薪酬体系」（PDM/PDH/PDI/PDL薪级3600~7000元）+超产奖励（月超产2500~2800元）。单班单线月总额253,637→235,637元（-18,000元/月，-7.4%），年化约21.6万元；员工平均月薪降幅1.97%~18.37%；备选超产模式方案144,251→135,670（-8,581，-6.1%）。2026-03-01起实施（报告编号20260309，呈伏总/方总）', reason:'proc', verified:false },
-    { date:'2026-09-10', title:'新能安装配线体调整（人力精简+超产单价下调）', pn:'', type:'jijian', money:12296, unit:'元/月',
-      desc:'单班目标40台不变，人力22→20人（人均产能+10%）；超产单价154→140元/台、门槛27台不变，员工个人超产奖金维持2548元/月不变。测算：人均月成本=基础3600+奖金2548=6148元，精简2人净省12,296元/月，年化约14.8万元；装配人工成本130.1→118.2元/台（-9.1%）。前提：精简2人为真实转出，超产14台/天×26天口径', reason:'proc', verified:false },
+    { date:'2026-09-10', title:'新能安装配线体调整（人力精简+超产单价下调）', pn:'', type:'jijian', money:13242, unit:'元/月',
+      desc:'单班目标40台不变，人力22→20人（人均产能+10%）；超产单价154→140元/台、门槛27台不变，员工个人超产奖金维持2548元/月不变。28天口径：人均月成本=基础3600+奖金2548=6148元，精简2人净省13,242元/月，年化约15.9万元；月产1120台，装配人工成本121.9→114.1元/台（-6.4%）。26天口径为12,296元。前提：精简2人为真实转出，超产14台/天', reason:'proc', verified:false },
     { date:'2026-10-25', title:'A1项目产能差异查明', pn:'500105-00469', type:'manpower', money:0, unit:'',
       desc:'人力181→375人(+194)，同人力产能低52%，单台工时1.65万→3.67万秒', reason:'craft', verified:true }
   ],
@@ -295,7 +295,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:10,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:11,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -304,8 +304,8 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>10)return seedData();
-    if(d.v<10){
+    if(!d||d.v<2||d.v>11)return seedData();
+    if(d.v<11){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
         const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
@@ -339,7 +339,12 @@ function load(){
           (d.bens=d.bens||[]).push({id:uid(),...b});
         }
       });
-      d.v=10;
+      /* v11：效益口径统一为 28 天/月，覆盖同名条目金额与说明 */
+      (d.bens||[]).forEach(b=>{
+        const sb=window.SEED.benefits.find(x=>x.title===b.title);
+        if(sb){b.money=sb.money;b.unit=sb.unit;b.desc=sb.desc;b.date=sb.date}
+      });
+      d.v=11;
     }
     return d;
   }catch(e){return seedData()}
