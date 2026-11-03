@@ -118,11 +118,18 @@ main{padding:12px;max-width:1000px;margin:0 auto}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:680px){.grid2{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(2,1fr)}}
 
+.ptool{position:sticky;top:109px;z-index:48;display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:8px 12px;margin-bottom:10px}
+.ptool b{font-size:13px;font-weight:600;color:var(--txt);margin-right:auto}
+.ptool .btn{margin:0}
+
 /* ===== 桌面端布局（>=1024px）：左侧竖导航 + 首页双栏 ===== */
 @media(min-width:1024px){
-  header{padding-left:112px}
-  nav{position:fixed;left:0;top:0;bottom:0;width:96px;flex-direction:column;align-items:stretch;border-bottom:none;border-right:1px solid var(--line);padding-top:70px;overflow-y:auto;scrollbar-width:none}
-  nav button{flex:0 0 auto;min-width:0;padding:12px 14px;border-bottom:none;border-left:2px solid transparent;text-align:left}
+  header{padding-left:176px}
+  nav{position:fixed;left:0;top:0;bottom:0;width:160px;flex-direction:column;align-items:stretch;border-bottom:none;border-right:1px solid var(--line);padding-top:70px;overflow-y:auto;scrollbar-width:none}
+  nav button{flex:0 0 auto;min-width:0;padding:13px 18px;border-bottom:none;border-left:2px solid transparent;text-align:left;font-size:13.5px}
+  nav button i{font-style:normal;font-size:16px;margin-right:4px}
+  main{margin:0 auto;max-width:1400px;padding:16px 24px 16px 184px}
+  .ptool{top:70px}
   nav button.on{border-bottom-color:transparent;border-left-color:var(--blue2);background:var(--bg)}
   main{margin:0 auto;max-width:1400px;padding:16px 24px 16px 120px}
   .bottombar{display:none}
@@ -143,6 +150,7 @@ main{padding:12px;max-width:1000px;margin:0 auto}
 </header>
 <nav id="nav"></nav>
 <main>
+  <div class="ptool" id="ptool"></div>
   <div class="page" id="pg-home"></div>
   <div class="page" id="pg-std"></div>
   <div class="page" id="pg-rt"></div>
@@ -553,12 +561,24 @@ function go(p){
   window.scrollTo(0,0);
   render();
 }
+const PTOOLBAR={
+  home:['▦ 工作台',[['＋ 新增事项','openTask()']]],
+  std:['⚙ 工时测定',[['＋ 新建料号台账','newPart()'],['＋ 新增测定事项',"openTask(null,'measure')"]]],
+  rt:['⟳ 工时复测',[['＋ 新增复测事项',"openTask(null,'retest')"]]],
+  jj:['¥ 计件方案',[['＋ 新增计件事项',"openTask(null,'jijian')"],['＋ 记录方案成效','openBen()']]],
+  mp:['👥 人力评估',[['＋ 新增评估事项',"openTask(null,'manpower')"]]],
+  ben:['◆ 效益台账',[['＋ 新增条目','openBen()']]],
+  rep:['▤ 月度总结',[['生成月报','genReport()'],['复制全文','copyReport()']]],
+  data:['⛁ 数据',[['导出 JSON','expJSON()']]]
+};
 function render(){
   try{
     const d=new Date();
     $('dt').innerHTML=d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})+'<br>'+'周'+'日一二三四五六'[d.getDay()];
     $('who').textContent=DB.owner+' · '+DB.dept;
     const map={home:rHome,std:rStd,rt:rRt,jj:rJj,mp:rMp,ben:rBen,rep:rRep,data:rData};
+    const tb=PTOOLBAR[cur];
+    $('ptool').innerHTML=tb?`<b>${tb[0]}</b>`+tb[1].map(a=>`<button class="btn ghost sm" onclick="${a[1]}">${a[0]}</button>`).join(''):'';
     (map[cur]||rHome)();
   }catch(e){
     const bar=$('errbar');
