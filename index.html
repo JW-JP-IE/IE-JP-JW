@@ -234,6 +234,8 @@ window.SEED = {
       desc:'导轨切边取消银漆，单价154→140元/台，人力22→20人，人均产能+10%', reason:'proc', verified:true },
     { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'measure', money:0, unit:'元/年',
       desc:'遮蔽/喷PVC/烘烤/拆遮蔽 全工序改善，UPPH +27.8%', reason:'proc', verified:true },
+    { date:'2026-11-03', title:'136装配/气密计件单价下调（26天口径）', pn:'500111-00136', type:'jijian', money:13923, unit:'元/月',
+      desc:'装配 20.0→18.3元/件（-8.5%，21人）、气密 2.62→2.45元/件（-6.5%，3人）；285台/天口径月节约 13,923 元，区间 13,702~14,144 元/月（280~290台），年化约 16.7 万元。员工端：装配人均 -600 元/月、气密 -442 元/月；追回原收入产能门槛：装配 285→300 台（人均+112）、气密 300→315 台（人均+13）。注意：新版档位尚无签核日期，财务按旧档结算时节约不体现；28天口径为 1.50 万/月（口径差异约7.7%）', reason:'proc', verified:false },
     { date:'2026-10-25', title:'A1项目产能差异查明', pn:'500105-00469', type:'manpower', money:0, unit:'',
       desc:'人力181→375人(+194)，同人力产能低52%，单台工时1.65万→3.67万秒', reason:'craft', verified:true }
   ],
@@ -289,7 +291,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:7,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:8,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -298,8 +300,8 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>7)return seedData();
-    if(d.v<7){
+    if(!d||d.v<2||d.v>8)return seedData();
+    if(d.v<8){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
         const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
@@ -327,7 +329,13 @@ function load(){
       /* v7：取消「审计佐证」模块，全部并入「财务成本数据」 */
       const AL2={audit:'finance'};
       (d.tasks||[]).concat(d.bens||[]).forEach(x=>{x.type=AL2[x.type]||x.type});
-      d.v=7;
+      /* v8：追加新效益条目（按标题去重） */
+      window.SEED.benefits.forEach(b=>{
+        if(!(d.bens||[]).some(x=>x.title===b.title)){
+          (d.bens=d.bens||[]).push({id:uid(),...b});
+        }
+      });
+      d.v=8;
     }
     return d;
   }catch(e){return seedData()}
