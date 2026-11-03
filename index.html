@@ -226,21 +226,21 @@ window.SEED = {
   ],
   /* 效益台账（真实金额） */
   benefits: [
-    { date:'2026-06-20', title:'新能安计件方案首月成效', pn:'', type:'jijian', money:22357, unit:'元/月',
+    { date:'2026-06-20', title:'新能安计件方案首月成效', pn:'', type:'jijian', money:22357, unit:'元/月', state:'steady',
       desc:'人力85→82人，产能+6.3%，单台人工成本-31元', reason:'proc', verified:true },
-    { date:'2026-10-22', title:'新能安钣金计件单价下调', pn:'', type:'jijian', money:15077, unit:'元/月',
+    { date:'2026-10-22', title:'新能安钣金计件单价下调', pn:'', type:'jijian', money:15077, unit:'元/月', state:'steady',
       desc:'框架补焊57→49元(-14%)、打磨32→25元(-28.1%)，退出底薪2.5人。28天口径约15,077元/月（26天口径14,000元），年化约18.1万元', reason:'proc', verified:false },
-    { date:'2026-09-10', title:'新能安装配线超产调整', pn:'', type:'jijian', money:0, unit:'元/月',
+    { date:'2026-09-10', title:'新能安装配线超产调整', pn:'', type:'jijian', money:0, unit:'元/月', state:'steady',
       desc:'导轨切边取消银漆，单价154→140元/台，人力22→20人，人均产能+10%', reason:'proc', verified:true },
-    { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'measure', money:0, unit:'元/年',
+    { date:'2026-01-25', title:'82喷涂年度节约效益', pn:'20800000952', type:'measure', money:0, unit:'元/年', state:'stopped',
       desc:'遮蔽/喷PVC/烘烤/拆遮蔽 全工序改善，UPPH +27.8%', reason:'proc', verified:true },
-    { date:'2026-11-03', title:'136装配/气密计件单价下调（28天口径）', pn:'500111-00136', type:'jijian', money:14994, unit:'元/月',
+    { date:'2026-11-03', title:'136装配/气密计件单价下调（28天口径）', pn:'500111-00136', type:'jijian', money:14994, unit:'元/月', state:'steady',
       desc:'装配 20.0→18.3元/件（-8.5%，21人）、气密 2.62→2.45元/件（-6.5%，3人）。28天口径：285台/天月节约 14,994 元（区间 14,756~15,232 元/月，280~290台），年化约 18.0 万元；26天口径为 13,923 元。员工端（28天）：装配人均 -646 元、气密 -476 元；追回原收入产能门槛：装配 285→300 台、气密 300→315 台（各+15台，约+5%）。前提：旧体系超封顶档（装配270台、气密290台）仍按封顶单价计件', reason:'proc', verified:false },
-    { date:'2026-03-10', title:'特殊工序超产计件及等级薪酬体系调整（BC3/082系列）', pn:'500111-00082', type:'jijian', money:18000, unit:'元/月',
+    { date:'2026-03-10', title:'特殊工序超产计件及等级薪酬体系调整（BC3/082系列）', pn:'500111-00082', type:'jijian', money:18000, unit:'元/月', state:'stopped', endMonth:'2026-08',
       desc:'取消补焊/打磨/拉铆/喷胶等特殊工序岗位补助（焊工80元/天、打磨50~80元/天、喷胶50元/天），改为「从1计件+等级薪酬体系」（PDM/PDH/PDI/PDL薪级3600~7000元）+超产奖励（月超产2500~2800元）。单班单线月总额253,637→235,637元（-18,000元/月，-7.4%），年化约21.6万元；员工平均月薪降幅1.97%~18.37%；备选超产模式方案144,251→135,670（-8,581，-6.1%）。2026-03-01起实施（报告编号20260309，呈伏总/方总）', reason:'proc', verified:false },
-    { date:'2026-09-10', title:'新能安装配线体调整（人力精简+超产单价下调）', pn:'', type:'jijian', money:13242, unit:'元/月',
+    { date:'2026-09-10', title:'新能安装配线体调整（人力精简+超产单价下调）', pn:'', type:'jijian', money:13242, unit:'元/月', state:'steady',
       desc:'单班目标40台不变，人力22→20人（人均产能+10%）；超产单价154→140元/台、门槛27台不变，员工个人超产奖金维持2548元/月不变。28天口径：人均月成本=基础3600+奖金2548=6148元，精简2人净省13,242元/月，年化约15.9万元；月产1120台，装配人工成本121.9→114.1元/台（-6.4%）。26天口径为12,296元。前提：精简2人为真实转出，超产14台/天', reason:'proc', verified:false },
-    { date:'2026-10-25', title:'A1项目产能差异查明', pn:'500105-00469', type:'manpower', money:0, unit:'',
+    { date:'2026-10-25', title:'A1项目产能差异查明', pn:'500105-00469', type:'manpower', money:0, unit:'', state:'phased',
       desc:'人力181→375人(+194)，同人力产能低52%，单台工时1.65万→3.67万秒', reason:'craft', verified:true }
   ],
   /* 待办（真实在办事项） */
@@ -295,7 +295,7 @@ function seedData(){
     hours:t.hours||0,created:nowISO(),done:false
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
-  return {v:11,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
+  return {v:12,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
     monthly:{...S.monthly},logs:[],lastMonthReport:''};
 }
 let DB=load();
@@ -304,8 +304,8 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>11)return seedData();
-    if(d.v<11){
+    if(!d||d.v<2||d.v>12)return seedData();
+    if(d.v<12){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
         const AL={stdtime:'measure',process:'audit',eff:'measure',lab:'measure',cos:'finance'};
@@ -344,7 +344,17 @@ function load(){
         const sb=window.SEED.benefits.find(x=>x.title===b.title);
         if(sb){b.money=sb.money;b.unit=sb.unit;b.desc=sb.desc;b.date=sb.date}
       });
-      d.v=11;
+      /* v12：效益条目增加持续性状态与失效月份 */
+      (d.bens||[]).forEach(b=>{
+        const sb=window.SEED.benefits.find(x=>x.title===b.title);
+        if(sb){
+          b.money=sb.money;b.unit=sb.unit;b.desc=sb.desc;b.date=sb.date;
+          b.state=sb.state||'steady';
+          if(sb.endMonth)b.endMonth=sb.endMonth;
+        }
+        if(!b.state)b.state='steady';
+      });
+      d.v=12;
     }
     return d;
   }catch(e){return seedData()}
@@ -432,7 +442,7 @@ function unEol(pn){
 function sum(){
   const tasks=DB.tasks;
   const open=tasks.filter(t=>t.stage!=='done');
-  const benM=DB.bens.filter(b=>b.unit&&b.unit.indexOf('月')>=0).reduce((s,b)=>s+(+b.money||0),0);
+  const benM=typeof benOfMonth==='function'?benOfMonth(monOf(today())):DB.bens.filter(b=>b.unit&&b.unit.indexOf('月')>=0).reduce((s,b)=>s+(+b.money||0),0);
   const benY=DB.bens.filter(b=>b.unit&&b.unit.indexOf('年')>=0).reduce((s,b)=>s+(+b.money||0),0);
   const stale=DB.parts.filter(isStale).length;
   const over=tasks.filter(t=>t.stage!=='done'&&t.due&&t.due<today()).length;
@@ -509,7 +519,7 @@ function rHome(){
     <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--blue2)">${s.open}</b><span>在办事项</span></div>
     <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--red)">${s.over}</b><span>已超期</span></div>
     <div style="cursor:pointer" onclick="go('rt')"><b style="color:var(--amber)">${s.stale}</b><span>待复测料号</span></div>
-    <div style="cursor:pointer" onclick="go('ben')"><b style="color:var(--green)">${(s.benM/10000).toFixed(1)}万</b><span>月效益(元)</span></div>
+    <div style="cursor:pointer" onclick="go('ben')"><b style="color:var(--green)">${(s.benM/10000).toFixed(1)}万</b><span>在效月效益(元)</span></div>
   </div>
 
   <div class="card">
@@ -578,8 +588,8 @@ function rHome(){
   <div class="card">
     <h3>◆ 效益速览</h3>
     <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin:0">
-      <div><b style="color:var(--green)">${fmtN(s.benM)}</b><span>月节约(元)</span></div>
-      <div><b style="color:var(--green)">${fmtN(s.benM*12)}</b><span>折年(元)</span></div>
+      <div><b style="color:var(--green)">${fmtN(s.benM)}</b><span>在效月效益(元)</span></div>
+      <div><b style="color:var(--blue2)">${fmtN(benYearTotal(monOf(today()).slice(0,4)))}</b><span>今年累计(元)</span></div>
       <div><b>${s.vers}</b><span>工时版本数</span></div>
     </div>
     <div class="hint">数据来自你的年度工作记录（${window.SEED.meta.records} 条记录 / ${window.SEED.meta.partNos} 个料号）。</div>
@@ -863,47 +873,106 @@ function rMp(){
 }
 
 /* ============ 效益台账 ============ */
+const ST_STATE={
+  steady:{n:'持续在产',c:'#16a34a',icon:'🟢',note:'可年化'},
+  phased:{n:'阶段性',c:'#f59e0b',icon:'🟡',note:'按在产期计'},
+  stopped:{n:'已停产',c:'#94a3b8',icon:'⚪',note:'一次性累计'}
+};
+/* 计算某条效益在指定月份是否生效（money 为月效益时） */
+function benActive(x,m){
+  if(!x.money||!x.unit||x.unit.indexOf('月')<0)return false;
+  const st=monOf(x.date);
+  if(m<st)return false;
+  if(x.endMonth&&m>x.endMonth)return false;
+  if(x.state==='stopped')return x.endMonth?m<=x.endMonth:false;
+  return true;
+}
+/* 某月所有在效条目的月效益合计 */
+function benOfMonth(m){
+  return DB.bens.reduce((s,x)=>s+(benActive(x,m)?(+x.money||0):0),0);
+}
+/* 年度累计：逐月累加 */
+function benYearTotal(year){
+  let sum=0;
+  for(let i=1;i<=12;i++){
+    const m=year+'-'+String(i).padStart(2,'0');
+    if(m>monOf(today()))break;
+    sum+=benOfMonth(m);
+  }
+  return sum;
+}
+
 function rBen(){
   const b=DB.bens;
-  const byM=b.filter(x=>x.unit&&x.unit.indexOf('月')>=0);
-  const totalM=byM.reduce((s,x)=>s+(+x.money||0),0);
-  const byType={};
-  b.forEach(x=>{byType[x.type]=(byType[x.type]||0)+(+x.money||0)});
+  const curM=monOf(today());
+  const curYear=curM.slice(0,4);
+  const activeNow=b.filter(x=>benActive(x,curM));
+  const monthNow=benOfMonth(curM);
+  const yearTotal=benYearTotal(curYear);
+  const states=['steady','phased','stopped'];
+  const byState={};
+  states.forEach(k=>byState[k]=b.filter(x=>(x.state||'steady')===k));
+  const maxM=Math.max(1,...b.map(x=>+x.money||0));
+
+  const rowBen=x=>{
+    const st=ST_STATE[x.state||'steady'];
+    const act=benActive(x,curM);
+    return `<div class="tk" style="align-items:flex-start">
+      <div class="dot" style="background:${st.c}"></div>
+      <div class="body">
+        <div class="ti">${esc(x.title)}</div>
+        <div class="mt">
+          <span class="tg" style="background:${st.c}18;color:${st.c}">${st.icon} ${st.n}</span>
+          <span>${esc(x.date)}</span>${x.endMonth?`<span>→ ${esc(x.endMonth)} 止</span>`:''}
+          ${x.pn?`<span style="font-family:ui-monospace,monospace">${esc(x.pn)}</span>`:''}
+          ${x.money?`<span style="color:${act?'var(--green)':'var(--sub)'};font-weight:600">${fmtN(x.money)} ${esc(x.unit)}</span>`:''}
+          <span class="tg" style="background:${x.verified?'#e8f5ee':'#fdf3e0'};color:${x.verified?'var(--green)':'var(--amber)'}">${x.verified?'已验证':'待验证'}</span>
+          ${x.money&&x.unit&&x.unit.indexOf('月')>=0&&!act&&!x.endMonth?'<span style="color:var(--red)">未生效</span>':''}
+        </div>
+        <div style="font-size:11px;color:var(--sub);margin-top:4px;line-height:1.5">${esc(x.desc)}</div>
+        ${x.money&&x.unit&&x.unit.indexOf('月')>=0?`<div style="height:4px;background:#eef2f8;border-radius:2px;margin-top:6px"><i style="display:block;height:100%;border-radius:2px;width:${Math.max(2,(+x.money)/maxM*100)}%;background:${st.c}"></i></div>`:''}
+      </div>
+      <button class="op" onclick="openBen('${x.id}')">编辑</button>
+    </div>`;
+  };
+
   $('pg-ben').innerHTML=`
   <div class="card">
-    <h3>◆ 效益台账</h3>
-    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
-      <div><b style="color:var(--green)">${fmtN(totalM)}</b><span>月节约(元)</span></div>
-      <div><b style="color:var(--green)">${fmtN(totalM*12)}</b><span>折年(元)</span></div>
-      <div><b>${b.length}</b><span>台账条目</span></div>
+    <h3>◆ 效益台账 <span class="badge" style="background:var(--green)">${b.length} 条</span></h3>
+    <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:8px">
+      <div><b style="color:var(--green);font-size:20px">${fmtN(monthNow)}</b><span>当前在效月效益(元)</span></div>
+      <div><b style="color:var(--blue2);font-size:20px">${fmtN(yearTotal)}</b><span>${curYear}年累计实现(元)</span></div>
+      <div><b style="color:var(--sub);font-size:20px">${(monthNow*12/10000).toFixed(1)}万</b><span>在效年化(元)</span></div>
     </div>
-    <div class="hint">只统计单位含「月」的条目并折年；比率类指标（产能提升%、UPPH）单独列出不计入金额。</div>
+    <div class="hint" style="margin-top:0">
+      <b>当前在效月效益</b>=本月仍在持续产生效益的条目之和（停产/未生效不计）；<b>年度累计</b>=逐月加权累加，反映今年真实实现金额。
+      已停产项目只计入其停产前的累计，不再年化，避免高估。
+    </div>
   </div>
   <div class="card">
-    <h3>明细</h3>
-    <table class="tb">
-      <tr><th>日期</th><th>项目</th><th>效果</th><th class="num">金额</th></tr>
-      ${b.map(x=>`<tr>
-        <td style="white-space:nowrap">${esc(x.date.slice(5))}</td>
-        <td>${esc(x.title)}${x.pn?`<br><span style="font-family:ui-monospace,monospace;font-size:10px;color:var(--sub)">${esc(x.pn)}</span>`:''}</td>
-        <td style="font-size:10px;color:var(--sub);line-height:1.45">${esc(x.desc)}</td>
-        <td class="num">${x.money?fmtN(x.money):'—'}${x.money?'<br><span style="font-size:9px;color:var(--sub)">'+esc(x.unit)+'</span>':''}</td>
-      </tr>`).join('')}
-    </table>
-    <button class="btn ghost sm" style="margin-top:10px" onclick="openBen()">＋ 新增条目</button>
-    <button class="btn ghost sm" style="margin:10px 0 0 8px" onclick="openTask(null,'finance')">＋ 新增事项</button>
+    <h3>▤ 月度在效趋势</h3>
+    ${(()=>{
+      const months=[];const y=new Date().getFullYear();
+      for(let i=1;i<=12;i++)months.push(y+'-'+String(i).padStart(2,'0'));
+      const vals=months.map(m=>benOfMonth(m));
+      const mx=Math.max(1,...vals);
+      return `<div class="bars">${months.map((m,i)=>`<div title="${m}: ${fmtN(vals[i])} 元"><div class="b" style="height:${Math.max(2,vals[i]/mx*100)}%;background:linear-gradient(180deg,#34d399,#16a34a)"></div><div class="l">${i+1}</div></div>`).join('')}</div>`;
+    })()}
+    <div class="hint">按月累加当月所有在效条目的月效益，可看出效益是逐步爬坡还是某月断档。</div>
   </div>
+  ${states.filter(k=>byState[k].length).map(k=>{
+    const st=ST_STATE[k], list=byState[k].sort((a,b2)=>(b2.date||'').localeCompare(a.date||''));
+    const sum=list.filter(x=>x.unit&&x.unit.indexOf('月')>=0).reduce((s,x)=>s+(+x.money||0),0);
+    return `<div class="card">
+      <h3 style="color:${st.c}">${st.icon} ${st.n} <span class="badge" style="background:${st.c}">${list.length}</span>
+        <span style="float:right;font-size:11px;font-weight:400;color:var(--sub)">${st.note}${sum?' · 合计 '+fmtN(sum)+' 元/月':''}</span></h3>
+      ${k==='stopped'?'<div class="hint" style="margin-top:0">已停产项目不计入当前月效益与年化，只保留历史记录与在产期累计。</div>':''}
+      ${list.map(rowBen).join('')}
+    </div>`;
+  }).join('')}
   <div class="card">
-    <h3>按工作类型</h3>
-    ${Object.keys(byType).map(k=>{
-      const t=tInfo(k);
-      const v=byType[k];
-      const max=Math.max(1,...Object.values(byType));
-      return `<div style="display:flex;align-items:center;gap:8px;font-size:11px;margin-bottom:8px">
-        <span style="width:66px;color:var(--sub);flex-shrink:0">${esc(t.short||t.name)}</span>
-        <span style="flex:1;height:13px;background:#edf1f7;border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:${v/max*100}%;background:${t.color};border-radius:4px"></i></span>
-        <span style="width:64px;text-align:right;font-weight:600">${fmtN(v)}</span>
-      </div>`}).join('')||'<div class="empty">暂无</div>'}
+    <button class="btn ghost sm" onclick="openBen()">＋ 新增条目</button>
+    <button class="btn ghost sm" style="margin-left:8px" onclick="openTask(null,'finance')">＋ 新增事项</button>
   </div>`;
 }
 
@@ -1293,6 +1362,14 @@ function openBen(id){
   <label>工作类型</label>
   <div class="chips" id="bType">${DB.types.map(x=>`<div class="chip ${b&&b.type===x.key?'on':''}" data-k="${x.key}">${esc(x.name)}</div>`).join('')}</div>
   <div class="r2">
+    <div><label>持续性</label><select id="bState">
+      <option value="steady" ${!b||(b.state||'steady')==='steady'?'selected':''}>持续在产（可年化）</option>
+      <option value="phased" ${b&&b.state==='phased'?'selected':''}>阶段性（按在产期计）</option>
+      <option value="stopped" ${b&&b.state==='stopped'?'selected':''}>已停产（一次性累计）</option>
+    </select></div>
+    <div><label>失效月份（停产/结束时填）</label><input type="month" id="bEnd" value="${b&&b.endMonth?b.endMonth:''}"></div>
+  </div>
+  <div class="r2">
     <div><label>金额</label><input type="number" step="0.01" id="bMoney" value="${b?b.money:''}" placeholder="22357"></div>
     <div><label>单位</label><select id="bUnit">
       <option value="元/月" ${!b||b.unit==='元/月'?'selected':''}>元/月</option>
@@ -1324,6 +1401,8 @@ function saveBen(id){
   const data={
     title,date:$('bDate').value||today(),pn:$('bPn').value.trim(),
     type:tc?tc.dataset.k:'jijian',money:+$('bMoney').value||0,
+    state:$('bState')?$('bState').value:'steady',
+    endMonth:$('bEnd')?$('bEnd').value:'',
     unit:$('bUnit').value,desc:$('bDesc').value.trim(),
     verified:$('bVer').checked,reason:''
   };
