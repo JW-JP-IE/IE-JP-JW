@@ -1065,16 +1065,27 @@ function rBen(){
 }
 
 /* ============ 月度总结 ============ */
+/* 可选月份：数据里出现过的月份 + 当前月，倒序 */
+function monthKeys(){
+  const s=new Set(Object.keys(DB.monthly||{}));
+  (DB.tasks||[]).forEach(x=>{if(x.created)s.add(monOf(x.created));if(x.due)s.add(monOf(x.due));if(x.doneAt)s.add(monOf(x.doneAt))});
+  (DB.parts||[]).forEach(p=>(p.hours||[]).forEach(h=>{if(h.date)s.add(monOf(h.date))}));
+  (DB.bens||[]).forEach(b=>{if(b.date)s.add(monOf(b.date))});
+  s.add(monOf(today()));
+  return [...s].filter(Boolean).sort().reverse();
+}
 function rRep(){
-  const months=Object.keys(DB.monthly).sort().reverse();
-  const curM=months[0]||monOf(today());
+  const months=monthKeys();
+  /* 保留用户当前已选月份，避免重绘后跳回最新月 */
+  const prev=$('repM')?$('repM').value:'';
+  const curM=months.includes(prev)?prev:(months[0]||monOf(today()));
   $('pg-rep').innerHTML=`
   <div class="card">
     <h3>▤ 月度工作总结</h3>
     <div class="hint" style="margin-top:0">按选定月份自动汇总：完成事项、涉及料号、效益贡献，可直接粘到邮件或汇报材料。</div>
     <div class="r2" style="margin-top:9px">
       <div><label style="font-size:11px;color:var(--sub)">选择月份</label>
-        <select id="repM" onchange="rRep()">${months.map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m}</option>`).join('')}</select>
+        <select id="repM">${months.map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m}</option>`).join('')}</select>
       </div>
       <div style="display:flex;align-items:flex-end"><button class="btn" style="width:100%" onclick="genReport()">生成月报</button></div>
     </div>
@@ -1165,7 +1176,8 @@ function genReport(){
     other.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.stage==='done'?'（已完成）':''}`));
     L.push('');
   }
-  const open=DB.tasks.filter(x=>x.stage!=='done');
+  const latest=monthKeys()[0];
+  const open=(m===latest)?DB.tasks.filter(x=>x.stage!=='done'):[];
   if(open.length){
     L.push(`六、下月计划（${open.length} 项）`);
     open.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.due?`（${x.due}）`:''}`));
