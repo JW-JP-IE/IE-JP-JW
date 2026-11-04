@@ -1124,9 +1124,10 @@ function genReport(){
   const L=[];
   L.push(`【IE 工作月报】${m}　${DB.owner} · ${DB.dept}`);
   L.push('');
+  const jj=t.filter(x=>x.type==='jijian');
   L.push(`一、本月概况`);
-  L.push(`  · 处理工作项 ${t.length} 项，完成 ${done.length} 项`);
-  L.push(`  · 涉及料号 ${parts.length} 个，工时版本更新 ${newVers.length} 次`);
+  L.push(`  · 处理工作合计 ${t.length+newVers.length+bens.length} 项：工作事项 ${t.length}（完成 ${done.length}）＋ 工时版本 ${newVers.length} ＋ 效益条目 ${bens.length}`);
+  L.push(`  · 涉及料号 ${parts.length} 个`);
   if(money)L.push(`  · 新增/验证效益 ${fmtN(money)} 元/月（折年 ${fmtN(money*12)} 元）`);
   L.push('');
 
@@ -1139,12 +1140,16 @@ function genReport(){
     });
     L.push('');
   }
-  if(bens.length){
-    L.push(`三、计件方案与效益（${bens.length} 项）`);
+  if(bens.length||jj.length){
+    L.push(`三、计件方案与效益（${bens.length+jj.length} 项）`);
     bens.forEach(b=>{
       L.push(`  · ${b.title}${b.pn?`（${b.pn}）`:''}`);
       L.push(`    成效：${b.desc}`);
       if(b.money)L.push(`    金额：${fmtN(b.money)} ${b.unit}`);
+    });
+    jj.forEach(x=>{
+      L.push(`  · [事项] ${x.title}${x.stage==='done'?'（已完成）':''}`);
+      if(x.detail)L.push(`    ${x.detail}`);
     });
     L.push('');
   }
