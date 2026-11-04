@@ -1281,7 +1281,32 @@ function clearAll(){
 /* ============ 弹窗 ============ */
 function openModal(html){$('mbox').innerHTML=html;$('modal').classList.add('on')}
 function closeModal(){$('modal').classList.remove('on')}
-$('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+/* 遮罩关闭：只在「按下、抬起都在遮罩空白处」且没有拖动/选中文字时才关，
+   避免在弹窗内选中文字、拖出弹窗边界松手时把弹窗误关（表现为闪退） */
+let mdTarget=null,mdX=0,mdY=0,mdMoved=false;
+function markDown(e){
+  mdTarget=e.target;mdMoved=false;
+  const p=e.touches&&e.touches[0]?e.touches[0]:e;
+  mdX=p.clientX;mdY=p.clientY;
+}
+function markMove(e){
+  const p=e.touches&&e.touches[0]?e.touches[0]:e;
+  if(mdTarget&&(Math.abs(p.clientX-mdX)>6||Math.abs(p.clientY-mdY)>6))mdMoved=true;
+}
+$('modal').addEventListener('mousedown',markDown);
+$('modal').addEventListener('touchstart',markDown,{passive:true});
+$('modal').addEventListener('mousemove',markMove);
+$('modal').addEventListener('touchmove',markMove,{passive:true});
+$('modal').addEventListener('click',e=>{
+  if(e.target.id!=='modal')return;                       // 点在弹窗内容上：不关
+  if(mdTarget&&mdTarget.id!=='modal')return;             // 起点在弹窗内容里：不关（选中文字拖出边界）
+  if(mdMoved)return;                                     // 拖动过：不关
+  if(window.getSelection&&String(window.getSelection()).length)return;  // 有选中文字：不关
+  const bx=$('mbox').getBoundingClientRect();                            // 坐标落在弹窗范围内：不关
+  if(e.clientX>=bx.left&&e.clientX<=bx.right&&e.clientY>=bx.top&&e.clientY<=bx.bottom)return;
+  closeModal();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modal').classList.contains('on'))closeModal()});
 
 /* 记录工时新版本 */
 function logVersion(pn){
