@@ -157,6 +157,7 @@ main{padding:12px;max-width:1000px;margin:0 auto}
   <div class="page" id="pg-jj"></div>
   <div class="page" id="pg-mp"></div>
   <div class="page" id="pg-ben"></div>
+  <div class="page" id="pg-temp"></div>
   <div class="page" id="pg-rep"></div>
   <div class="page" id="pg-data"></div>
 </main>
@@ -340,7 +341,7 @@ function seedData(){
   }));
   const bens=S.benefits.map(b=>({id:uid(),...b}));
   return {v:15,owner:S.meta.owner,dept:S.meta.dept,types,tasks,parts,bens,reasons:S.reasons,
-    monthly:{...S.monthly},logs:[],lastMonthReport:''};
+    monthly:{...S.monthly},tmp:[],logs:[],lastMonthReport:''};
 }
 let DB=load();
 function load(){
@@ -348,7 +349,7 @@ function load(){
     const raw=localStorage.getItem(KEY);
     if(!raw)return seedData();
     const d=JSON.parse(raw);
-    if(!d||d.v<2||d.v>16)return seedData();
+    if(!d||d.v<2||d.v>17)return seedData();
     if(d.v<14){
       if(d.v===2){
         /* 模块调整迁移：测定/复测拆分，取消「标准文件与流程」并入审计佐证 */
@@ -431,6 +432,11 @@ function load(){
         else (d.bens=d.bens||[]).push({id:uid(),...b});
       });
       d.v=16;
+    }
+    /* v17：新增「临时交办」模块数据数组 */
+    if(d.v<17){
+      if(!Array.isArray(d.tmp))d.tmp=[];
+      d.v=17;
     }
     return d;
   }catch(e){return seedData()}
@@ -534,6 +540,7 @@ const PAGES=[
   ['jj','¥','计件方案'],
   ['mp','👥','人力评估'],
   ['ben','◆','效益台账'],
+  ['temp','⚡','临时交办'],
   ['rep','▤','月度总结'],
   ['data','⛁','数据']
 ];
@@ -568,6 +575,7 @@ const PTOOLBAR={
   jj:['¥ 计件方案',[['＋ 新增计件事项',"openTask(null,'jijian')"],['＋ 记录方案成效','openBen()']]],
   mp:['👥 人力评估',[['＋ 新增评估事项',"openTask(null,'manpower')"]]],
   ben:['◆ 效益台账',[['＋ 新增条目','openBen()']]],
+  temp:['⚡ 临时交办',[['＋ 新增交办','openTemp()']]],
   rep:['▤ 月度总结',[['生成月报','genReport()'],['复制全文','copyReport()']]],
   data:['⛁ 数据',[['导出 JSON','expJSON()']]]
 };
@@ -576,7 +584,7 @@ function render(){
     const d=new Date();
     $('dt').innerHTML=d.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})+'<br>'+'周'+'日一二三四五六'[d.getDay()];
     $('who').textContent=DB.owner+' · '+DB.dept;
-    const map={home:rHome,std:rStd,rt:rRt,jj:rJj,mp:rMp,ben:rBen,rep:rRep,data:rData};
+    const map={home:rHome,std:rStd,rt:rRt,jj:rJj,mp:rMp,ben:rBen,temp:rTemp,rep:rRep,data:rData};
     const tb=PTOOLBAR[cur];
     $('ptool').innerHTML=tb?`<b>${tb[0]}</b>`+tb[1].map(a=>`<button class="btn ghost sm" onclick="${a[1]}">${a[0]}</button>`).join(''):'';
     (map[cur]||rHome)();
@@ -601,11 +609,13 @@ function rHome(){
   }).length;
   const pageOf=k=>({measure:'std',retest:'rt',jijian:'jj',manpower:'mp',finance:'ben',audit:'ben'}[k]||'home');
   const cntOf=k=>k==='measure'?DB.parts.length:k==='retest'?s.stale:cntByType(k);
+  const tmpAll=DB.tmp||[];
+  const tmpOpen=tmpAll.filter(x=>x.stage!=='done');
 
   $('pg-home').innerHTML=`
   <div class="kpi">
-    <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--blue2)">${s.open}</b><span>在办事项</span></div>
-    <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--red)">${s.over}</b><span>已超期</span></div>
+    <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--blue2)">${s.open+tmpOpen.length}</b><span>在办事项</span></div>
+    <div style="cursor:pointer" onclick="go('rep')"><b style="color:var(--red)">${s.over+tmpOpen.filter(x=>x.due&&x.due<today()).length}</b><span>已超期</span></div>
     <div style="cursor:pointer" onclick="go('rt')"><b style="color:var(--amber)">${s.stale}</b><span>待复测料号</span></div>
     <div style="cursor:pointer" onclick="go('ben')"><b style="color:var(--green)">${(s.benM/10000).toFixed(1)}万</b><span>在效月效益(元)</span></div>
   </div>
@@ -615,6 +625,19 @@ function rHome(){
     <div class="blocks">
       ${(()=>{const tot=DB.types.reduce((s,t)=>s+cntOf(t.key),0)||1;
         const mx=Math.max(...DB.types.map(t=>cntOf(t.key)),1);
+        const tc=tmpOpen.length;
+        const tempBlk=`<div class="blk" style="border-left-color:#8b5cf6" onclick="go('temp')">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;min-width:0">
+              <div class="n">⚡ 临时交办</div>
+              <div class="d">领导临时安排、跨部门协办事项</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:22px;font-weight:700;line-height:1;color:#8b5cf6">${tc}</div>
+              <div style="font-size:10px;color:var(--sub);margin-top:2px">在办</div>
+            </div>
+          </div>
+        </div>`;
         return DB.types.map(t=>{const c=cntOf(t.key),pc=Math.round(c/tot*100);
         return `<div class="blk" style="border-left-color:${t.color}" onclick="go('${pageOf(t.key)}')">
           <div style="display:flex;align-items:center;gap:8px">
@@ -630,7 +653,7 @@ function rHome(){
           <div style="height:6px;background:#eef2f8;border-radius:3px;margin-top:8px;overflow:hidden">
             <i style="display:block;height:100%;border-radius:3px;width:${Math.max(c?6:0,c/mx*100)}%;background:linear-gradient(90deg,${t.color}55,${t.color})"></i>
           </div>
-        </div>`}).join('')})()}
+        </div>`}).join('')+tempBlk})()}
     </div>
   </div>
 
@@ -1064,6 +1087,98 @@ function rBen(){
   </div>`;
 }
 
+/* ============ 临时交办 ============ */
+const TMP_COLOR='#8b5cf6';
+function rTemp(){
+  const all=(DB.tmp||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const open=all.filter(x=>x.stage!=='done');
+  const doing=open.filter(x=>x.stage==='doing');
+  const done=all.filter(x=>x.stage==='done');
+  const over=open.filter(x=>x.due&&x.due<today());
+  $('pg-temp').innerHTML=`
+  <div class="kpi">
+    <div><b style="color:var(--blue2)">${open.length}</b><span>在办交办</span></div>
+    <div><b style="color:var(--amber)">${doing.length}</b><span>进行中</span></div>
+    <div><b style="color:var(--red)">${over.length}</b><span>已超期</span></div>
+    <div><b style="color:var(--green)">${done.length}</b><span>已完成</span></div>
+  </div>
+  <div class="card">
+    <h3>⚡ 在办 / 进行中 <span class="badge" style="background:var(--amber)">${open.length}</span></h3>
+    ${open.length?open.map(tmpRow).join(''):'<div class="empty">暂无在办交办事项</div>'}
+    <button class="btn ghost sm" style="margin-top:9px" onclick="openTemp()">＋ 新增交办事项</button>
+  </div>
+  <div class="card">
+    <h3>✅ 已完成 <span class="badge" style="background:var(--green)">${done.length}</span></h3>
+    ${done.length?done.map(tmpRow).join(''):'<div class="empty">暂无已完成交办</div>'}
+  </div>`;
+}
+function tmpRow(x){
+  const isOver=x.stage!=='done'&&x.due&&x.due<today();
+  const stTxt=x.stage==='doing'?'进行中':x.stage==='done'?'已完成':'未开始';
+  return `<div class="tk" style="align-items:flex-start">
+    <div class="dot" style="background:${isOver?'var(--red)':x.stage==='done'?'var(--green)':TMP_COLOR}"></div>
+    <div class="body">
+      <div class="ti">${esc(x.title)}${isOver?' <span class="tg" style="background:#ef444418;color:#ef4444">已超期</span>':''}</div>
+      <div class="mt"><span>${x.date||''}</span><span>交办：${esc(x.from||'—')}</span>${x.due?`<span>要求 ${x.due}</span>`:''}<span>${stTxt}</span></div>
+      ${x.detail?`<div class="d" style="margin-top:4px">${esc(x.detail)}</div>`:''}
+    </div>
+    <div style="display:flex;gap:5px;flex-shrink:0">
+      ${x.stage!=='done'?`<button class="btn ghost sm" onclick="cycTemp('${x.id}')">${x.stage==='doing'?'✓ 完成':'▶ 开始'}</button>`:''}
+      <button class="btn gray sm" onclick="openTemp('${x.id}')">编辑</button>
+    </div>
+  </div>`;
+}
+function openTemp(id){
+  const x=id?(DB.tmp||[]).find(t2=>t2.id===id):null;
+  openModal(`<h3>${x?'编辑交办事项':'新增交办事项'}</h3>
+  <label>事项标题 *</label><input id="vTitle" value="${x?esc(x.title):''}" placeholder="交办了什么事">
+  <div class="r2">
+    <div><label>交办人</label><input id="vFrom" value="${x?esc(x.from||''):''}" placeholder="如：方总/张工"></div>
+    <div><label>交办日期</label><input type="date" id="vDate" value="${x?(x.date||today()):today()}"></div>
+  </div>
+  <div class="r2">
+    <div><label>要求完成</label><input type="date" id="vDue" value="${x?(x.due||''):''}"></div>
+    <div><label>状态</label><select id="vStage">
+      <option value="todo" ${!x||x.stage==='todo'?'selected':''}>未开始</option>
+      <option value="doing" ${x&&x.stage==='doing'?'selected':''}>进行中</option>
+      <option value="done" ${x&&x.stage==='done'?'selected':''}>已完成</option>
+    </select></div>
+  </div>
+  <label>内容 / 办理情况</label><textarea id="vDetail">${x?esc(x.detail||''):''}</textarea>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn" style="flex:1" onclick="saveTemp('${id||''}')">保存</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>
+  ${x?`<button class="btn red" style="width:100%;margin-top:8px" onclick="delTemp('${x.id}')">删除</button>`:''}`);
+}
+function saveTemp(id){
+  const title=$('vTitle').value.trim();
+  if(!title){alert('请填写标题');return}
+  const data={title,from:$('vFrom').value.trim(),date:$('vDate').value,due:$('vDue').value,
+    stage:$('vStage').value,detail:$('vDetail').value.trim()};
+  if(!DB.tmp)DB.tmp=[];
+  if(id){
+    const x=DB.tmp.find(t2=>t2.id===id);
+    Object.assign(x,data);
+    if(data.stage==='done'&&!x.doneAt)x.doneAt=today();
+    if(data.stage!=='done')x.doneAt='';
+  }else{
+    DB.tmp.push({id:uid(),...data,doneAt:data.stage==='done'?today():''});
+  }
+  save();closeModal();
+}
+function cycTemp(id){
+  const x=(DB.tmp||[]).find(t2=>t2.id===id);if(!x)return;
+  x.stage=x.stage==='doing'?'done':'doing';
+  x.doneAt=x.stage==='done'?(x.doneAt||today()):'';
+  save();
+}
+function delTemp(id){
+  if(!confirm('删除该交办事项？'))return;
+  DB.tmp=(DB.tmp||[]).filter(x=>x.id!==id);
+  save();closeModal();
+}
+
 /* ============ 月度总结 ============ */
 /* 可选月份：数据里出现过的月份 + 当前月，倒序 */
 function monthKeys(){
@@ -1137,7 +1252,8 @@ function genReport(){
   L.push('');
   const jj=t.filter(x=>x.type==='jijian');
   L.push(`一、本月概况`);
-  L.push(`  · 处理工作合计 ${t.length+newVers.length+bens.length} 项：工作事项 ${t.length}（完成 ${done.length}）＋ 工时版本 ${newVers.length} ＋ 效益条目 ${bens.length}`);
+  const tmp=(DB.tmp||[]).filter(x=>monOf(x.date)===m||monOf(x.doneAt)===m);
+  L.push(`  · 处理工作合计 ${t.length+newVers.length+bens.length+tmp.length} 项：工作事项 ${t.length}（完成 ${done.length}）＋ 工时版本 ${newVers.length} ＋ 效益条目 ${bens.length} ＋ 临时交办 ${tmp.length}`);
   L.push(`  · 涉及料号 ${parts.length} 个`);
   if(money)L.push(`  · 新增/验证效益 ${fmtN(money)} 元/月（折年 ${fmtN(money*12)} 元）`);
   L.push('');
@@ -1178,8 +1294,16 @@ function genReport(){
   }
   const latest=monthKeys()[0];
   const open=(m===latest)?DB.tasks.filter(x=>x.stage!=='done'):[];
+  if(tmp.length){
+    L.push(`六、临时交办（${tmp.length} 项）`);
+    tmp.forEach(x=>{
+      L.push(`  · ${x.title}${x.from?`（交办：${x.from}，${x.date||''}）`:x.date?`（${x.date}）`:''}${x.stage==='done'?'——已完成':x.stage==='doing'?'——办理中':''}`);
+      if(x.detail)L.push(`    ${x.detail}`);
+    });
+    L.push('');
+  }
   if(open.length){
-    L.push(`六、下月计划（${open.length} 项）`);
+    L.push(`七、下月计划（${open.length} 项）`);
     open.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.due?`（${x.due}）`:''}`));
   }
   $('reportBox').value=L.join('\n');
@@ -1262,7 +1386,7 @@ function impJSON(inp){
     try{
       const d=JSON.parse(e.target.result);
       if(!d||!d.parts||!d.tasks)throw 0;
-      DB=d;save();alert('导入成功');go('home');
+      DB=d;if(!Array.isArray(DB.tmp))DB.tmp=[];save();alert('导入成功');go('home');
     }catch(x){alert('文件格式不正确')}
   };
   r.readAsText(f);
@@ -1274,7 +1398,7 @@ function resetSeed(){
 function clearAll(){
   if(!confirm('确定清空全部数据？不可恢复'))return;
   if(!confirm('再次确认：真的要清空吗？'))return;
-  DB={v:2,owner:DB.owner,dept:DB.dept,types:DB.types,tasks:[],parts:[],bens:[],reasons:DB.reasons,monthly:{},logs:[]};
+  DB={v:2,owner:DB.owner,dept:DB.dept,types:DB.types,tasks:[],parts:[],bens:[],reasons:DB.reasons,monthly:{},tmp:[],logs:[]};
   save();
 }
 
