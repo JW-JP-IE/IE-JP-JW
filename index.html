@@ -1119,7 +1119,7 @@ function tmpRow(x){
     <div class="dot" style="background:${isOver?'var(--red)':x.stage==='done'?'var(--green)':TMP_COLOR}"></div>
     <div class="body">
       <div class="ti">${esc(x.title)}${isOver?' <span class="tg" style="background:#ef444418;color:#ef4444">已超期</span>':''}</div>
-      <div class="mt"><span>${x.date||''}</span><span>交办：${esc(x.from||'—')}</span>${x.due?`<span>要求 ${x.due}</span>`:''}<span>${stTxt}</span></div>
+      <div class="mt"><span>${x.date||''}</span>${x.pn?`<span style="font-family:ui-monospace,monospace">${esc(x.pn)}</span>`:''}<span>交办：${esc(x.from||'—')}</span>${x.due?`<span>要求 ${x.due}</span>`:''}<span>${stTxt}</span></div>
       ${x.detail?`<div class="d" style="margin-top:4px">${esc(x.detail)}</div>`:''}
     </div>
     <div style="display:flex;gap:5px;flex-shrink:0">
@@ -1132,6 +1132,8 @@ function openTemp(id){
   const x=id?(DB.tmp||[]).find(t2=>t2.id===id):null;
   openModal(`<h3>${x?'编辑交办事项':'新增交办事项'}</h3>
   <label>事项标题 *</label><input id="vTitle" value="${x?esc(x.title):''}" placeholder="交办了什么事">
+  <label>关联料号</label><input id="vPn" list="pnList" value="${x?esc(x.pn||''):''}" placeholder="500111-00163（可空）">
+  <datalist id="pnList">${[...new Set(DB.parts.map(p=>p.pn))].map(pn=>`<option value="${pn}">`).join('')}</datalist>
   <div class="r2">
     <div><label>交办人</label><input id="vFrom" value="${x?esc(x.from||''):''}" placeholder="如：方总/张工"></div>
     <div><label>交办日期</label><input type="date" id="vDate" value="${x?(x.date||today()):today()}"></div>
@@ -1154,7 +1156,7 @@ function openTemp(id){
 function saveTemp(id){
   const title=$('vTitle').value.trim();
   if(!title){alert('请填写标题');return}
-  const data={title,from:$('vFrom').value.trim(),date:$('vDate').value,due:$('vDue').value,
+  const data={title,pn:$('vPn').value.trim().toUpperCase(),from:$('vFrom').value.trim(),date:$('vDate').value,due:$('vDue').value,
     stage:$('vStage').value,detail:$('vDetail').value.trim()};
   if(!DB.tmp)DB.tmp=[];
   if(id){
@@ -1297,7 +1299,7 @@ function genReport(){
   if(tmp.length){
     L.push(`六、临时交办（${tmp.length} 项）`);
     tmp.forEach(x=>{
-      L.push(`  · ${x.title}${x.from?`（交办：${x.from}，${x.date||''}）`:x.date?`（${x.date}）`:''}${x.stage==='done'?'——已完成':x.stage==='doing'?'——办理中':''}`);
+      L.push(`  · ${x.title}${x.pn?`（${x.pn}）`:''}${x.from?`（交办：${x.from}，${x.date||''}）`:x.date?`（${x.date}）`:''}${x.stage==='done'?'——已完成':x.stage==='doing'?'——办理中':''}`);
       if(x.detail)L.push(`    ${x.detail}`);
     });
     L.push('');
