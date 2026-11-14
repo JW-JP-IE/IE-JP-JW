@@ -576,7 +576,7 @@ const PTOOLBAR={
   mp:['👥 人力评估',[['＋ 新增评估事项',"openTask(null,'manpower')"]]],
   ben:['◆ 效益台账',[['＋ 新增条目','openBen()']]],
   temp:['⚡ 临时交办',[['＋ 新增交办','openTemp()']]],
-  rep:['▤ 月度总结',[['生成月报','genReport()'],['复制全文','copyReport()']]],
+  rep:['▤ 月度总结',[['生成月报',"genReport('month')"],['生成周报',"genReport('week')"],['导出 Excel','expReportExcel()']]],
   data:['⛁ 数据',[['导出 JSON','expJSON()']]]
 };
 function render(){
@@ -1198,22 +1198,30 @@ function rRep(){
   const curM=months.includes(prev)?prev:(months[0]||monOf(today()));
   $('pg-rep').innerHTML=`
   <div class="card">
-    <h3>▤ 月度工作总结</h3>
-    <div class="hint" style="margin-top:0">按选定月份自动汇总：完成事项、涉及料号、效益贡献，可直接粘到邮件或汇报材料。</div>
+    <h3>▤ 工作总结（月报 / 周报）</h3>
+    <div class="hint" style="margin-top:0">按周期自动汇总：完成事项、涉及料号、效益贡献。文字版可直接粘邮件，Excel 版为多 sheet 明细表。</div>
     <div class="r2" style="margin-top:9px">
-      <div><label style="font-size:11px;color:var(--sub)">选择月份</label>
+      <div><label style="font-size:11px;color:var(--sub)">月报：选择月份</label>
         <select id="repM">${months.map(m=>`<option value="${m}" ${m===curM?'selected':''}>${m}</option>`).join('')}</select>
       </div>
-      <div style="display:flex;align-items:flex-end"><button class="btn" style="width:100%" onclick="genReport()">生成月报</button></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn" style="width:100%" onclick="genReport('month')">生成月报</button></div>
+    </div>
+    <div class="r2" style="margin-top:9px">
+      <div><label style="font-size:11px;color:var(--sub)">周报：选择该周内任一天（按周一至周日汇总）</label>
+        <input type="date" id="repW" value="${today()}"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn ghost" style="width:100%" onclick="genReport('week')">生成周报</button></div>
     </div>
   </div>
   <div class="card">
     <h3>输出</h3>
     <textarea id="reportBox" style="width:100%;min-height:280px;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12px;line-height:1.7;font-family:inherit;background:#fafbfc" placeholder="点上方「生成月报」"></textarea>
-    <div style="display:flex;gap:7px;margin-top:9px">
+    <div style="display:flex;gap:7px;margin-top:9px;flex-wrap:wrap">
+      <button class="btn sm" onclick="expReportExcel()">⬇ 导出 Excel</button>
+      <button class="btn ghost sm" onclick="expReportExcel('week')">⬇ 本周周报 Excel</button>
       <button class="btn ghost sm" onclick="copyReport()">复制全文</button>
       <button class="btn gray sm" onclick="dlReport()">下载 .txt</button>
     </div>
+    <div class="hint" style="margin-top:6px">Excel 含 7 个 sheet：概况 / 标准工时与修订 / 计件与效益 / 人力评估 / 其他事项 / 临时交办 / 计划。</div>
   </div>
   <div class="card">
     <h3>在办事项总览 <span class="badge" style="background:var(--amber)">${DB.tasks.filter(t=>t.stage!=='done').length}</span></h3>
@@ -1235,81 +1243,205 @@ function rRep(){
     <button class="btn ghost sm" style="margin-top:9px" onclick="exportDone()">一键导出工作总结</button>
   </div>`;
 }
-function genReport(){
-  const m=$('repM').value;
-  const t=DB.tasks.filter(x=>monOf(x.created)===m||monOf(x.due)===m);
+/* 周区间：周一~周日 */
+function _pd(s){const p=String(s||'').split('-').map(Number);return new Date(p[0]||1970,(p[1]||1)-1,p[2]||1)}
+function _fdate(d){const q=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+q(d.getMonth()+1)+'-'+q(d.getDate())}
+function weekRange(base){
+  const d=_pd(base||today());
+  const wd=(d.getDay()+6)%7;
+  const a=new Date(d);a.setDate(d.getDate()-wd);
+  const b=new Date(a);b.setDate(a.getDate()+6);
+  return {a:_fdate(a),b:_fdate(b)};
+}
+/* 汇总一个周期（月/周）的数据 */
+function collect(kind){
+  kind=kind||'month';
+  let label,m='',inR;
+  if(kind==='week'){
+    const r=weekRange(($('repW')&&$('repW').value)||today());
+    label=r.a+' ~ '+r.b;
+    inR=d=>!!d&&d>=r.a&&d<=r.b;
+  }else{
+    m=(($('repM')&&$('repM').value)||monOf(today()));
+    label=m;
+    inR=d=>monOf(d)===m;
+  }
+  const t=DB.tasks.filter(x=>inR(x.created)||inR(x.due));
   const done=t.filter(x=>x.stage==='done');
-  const parts=DB.parts.filter(p=>p.hours.some(h=>monOf(h.date)===m));
-  const bens=DB.bens.filter(b=>monOf(b.date)===m);
-  const newVers=DB.parts.flatMap(p=>p.hours.filter(h=>monOf(h.date)===m).map(h=>({pn:p.pn,name:p.name,h})));
+  const parts=DB.parts.filter(p=>(p.hours||[]).some(h=>inR(h.date)));
+  const bens=DB.bens.filter(b=>inR(b.date));
+  const newVers=DB.parts.flatMap(p=>(p.hours||[]).filter(h=>inR(h.date)).map(h=>({pn:p.pn,name:p.name,h})));
   const money=bens.reduce((s,b)=>s+(+b.money||0),0);
-  const byType={};
-  parts.forEach(p=>{});
-  newVers.forEach(v=>{
-    const k=p=>p;
-  });
-
-  const L=[];
-  L.push(`【IE 工作月报】${m}　${DB.owner} · ${DB.dept}`);
-  L.push('');
+  const tmp=(DB.tmp||[]).filter(x=>inR(x.date)||inR(x.doneAt));
   const jj=t.filter(x=>x.type==='jijian');
-  L.push(`一、本月概况`);
-  const tmp=(DB.tmp||[]).filter(x=>monOf(x.date)===m||monOf(x.doneAt)===m);
-  L.push(`  · 处理工作合计 ${t.length+newVers.length+bens.length+tmp.length} 项：工作事项 ${t.length}（完成 ${done.length}）＋ 工时版本 ${newVers.length} ＋ 效益条目 ${bens.length} ＋ 临时交办 ${tmp.length}`);
-  L.push(`  · 涉及料号 ${parts.length} 个`);
-  if(money)L.push(`  · 新增/验证效益 ${fmtN(money)} 元/月（折年 ${fmtN(money*12)} 元）`);
+  const mp=t.filter(x=>x.type==='manpower');
+  const other=t.filter(x=>x.type!=='manpower'&&x.type!=='jijian');
+  let open=[];
+  if(kind==='week'){
+    const r=weekRange(today());
+    if(today()>=r.a&&today()<=r.b)open=DB.tasks.filter(x=>x.stage!=='done');
+  }else{
+    if(m===monthKeys()[0])open=DB.tasks.filter(x=>x.stage!=='done');
+  }
+  return {kind,label,m,t,done,parts,bens,newVers,money,tmp,jj,mp,other,open};
+}
+let lastRepKind='month';
+function genReport(kind){
+  kind=kind||'month';
+  lastRepKind=kind;
+  const c=collect(kind);
+  const L=[];
+  L.push(`${kind==='week'?'【IE 工作周报】':'【IE 工作月报】'}${c.label}　${DB.owner} · ${DB.dept}`);
+  L.push('');
+  L.push(`一、${kind==='week'?'本周':'本月'}概况`);
+  L.push(`  · 处理工作合计 ${c.t.length+c.newVers.length+c.bens.length+c.tmp.length} 项：工作事项 ${c.t.length}（完成 ${c.done.length}）＋ 工时版本 ${c.newVers.length} ＋ 效益条目 ${c.bens.length} ＋ 临时交办 ${c.tmp.length}`);
+  L.push(`  · 涉及料号 ${c.parts.length} 个`);
+  if(c.money)L.push(`  · 新增/验证效益 ${fmtN(c.money)} 元/月（折年 ${fmtN(c.money*12)} 元）`);
   L.push('');
 
-  if(newVers.length){
-    L.push(`二、标准工时测定与修订（${newVers.length} 项）`);
-    newVers.forEach(v=>{
+  if(c.newVers.length){
+    L.push(`二、标准工时测定与修订（${c.newVers.length} 项）`);
+    c.newVers.forEach(v=>{
       L.push(`  · ${v.pn}｜${v.name || ''}`);
       L.push(`    ${v.h.ver}（${v.h.date}）${v.h.total?` 总成工时 ${fmtN(v.h.total)}s`:''} ${rInfo(v.h.reason).name}`);
       if(v.h.note)L.push(`    说明：${v.h.note}`);
     });
     L.push('');
   }
-  if(bens.length||jj.length){
-    L.push(`三、计件方案与效益（${bens.length+jj.length} 项）`);
-    bens.forEach(b=>{
+  if(c.bens.length||c.jj.length){
+    L.push(`三、计件方案与效益（${c.bens.length+c.jj.length} 项）`);
+    c.bens.forEach(b=>{
       L.push(`  · ${b.title}${b.pn?`（${b.pn}）`:''}`);
       L.push(`    成效：${b.desc}`);
       if(b.money)L.push(`    金额：${fmtN(b.money)} ${b.unit}`);
     });
-    jj.forEach(x=>{
+    c.jj.forEach(x=>{
       L.push(`  · [事项] ${x.title}${x.stage==='done'?'（已完成）':''}`);
       if(x.detail)L.push(`    ${x.detail}`);
     });
     L.push('');
   }
-  const mp=t.filter(x=>x.type==='manpower');
-  if(mp.length){
-    L.push(`四、人力评估（${mp.length} 项）`);
-    mp.forEach(x=>{L.push(`  · ${x.title}`);if(x.detail)L.push(`    ${x.detail}`)});
+  if(c.mp.length){
+    L.push(`四、人力评估（${c.mp.length} 项）`);
+    c.mp.forEach(x=>{L.push(`  · ${x.title}`);if(x.detail)L.push(`    ${x.detail}`)});
     L.push('');
   }
-  const other=t.filter(x=>x.type!=='manpower'&&x.type!=='jijian');
-  if(other.length){
-    L.push(`五、其他事项（${other.length} 项）`);
-    other.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.stage==='done'?'（已完成）':''}`));
+  if(c.other.length){
+    L.push(`五、其他事项（${c.other.length} 项）`);
+    c.other.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.stage==='done'?'（已完成）':''}`));
     L.push('');
   }
-  const latest=monthKeys()[0];
-  const open=(m===latest)?DB.tasks.filter(x=>x.stage!=='done'):[];
-  if(tmp.length){
-    L.push(`六、临时交办（${tmp.length} 项）`);
-    tmp.forEach(x=>{
+  if(c.tmp.length){
+    L.push(`六、临时交办（${c.tmp.length} 项）`);
+    c.tmp.forEach(x=>{
       L.push(`  · ${x.title}${x.pn?`（${x.pn}）`:''}${x.from?`（交办：${x.from}，${x.date||''}）`:x.date?`（${x.date}）`:''}${x.stage==='done'?'——已完成':x.stage==='doing'?'——办理中':''}`);
       if(x.detail)L.push(`    ${x.detail}`);
     });
     L.push('');
   }
-  if(open.length){
-    L.push(`七、下月计划（${open.length} 项）`);
-    open.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.due?`（${x.due}）`:''}`));
+  if(c.open.length){
+    L.push(`七、${kind==='week'?'下周':'下月'}计划（${c.open.length} 项）`);
+    c.open.forEach(x=>L.push(`  · [${tInfo(x.type).short}] ${x.title}${x.due?`（${x.due}）`:''}`));
   }
   $('reportBox').value=L.join('\n');
 }
+
+/* ===== 极简 XLSX 生成（无外部依赖：store 打包 + 内联字符串） ===== */
+const _CRC=(()=>{const tb=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);tb[n]=c>>>0}return tb})();
+function _crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=_CRC[(c^u8[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function _u32(n,b){const a=new Uint8Array(b);for(let i=0;i<b;i++)a[i]=(n>>>(8*i))&255;return a}
+function _cat(list){let L=0;list.forEach(a=>L+=a.length);const o=new Uint8Array(L);let p=0;list.forEach(a=>{o.set(a,p);p+=a.length});return o}
+function _zip(files){
+  const parts=[],cen=[];let off=0;
+  files.forEach(f=>{
+    const name=new TextEncoder().encode(f.name),data=f.data,crc=_crc32(data);
+    const lh=_cat([_u32(0x04034b50,4),_u32(20,2),_u32(0x0800,2),_u32(0,2),_u32(0,2),_u32(0,2),_u32(crc,4),_u32(data.length,4),_u32(data.length,4),_u32(name.length,2),_u32(0,2),name]);
+    parts.push(lh,data);
+    cen.push(_cat([_u32(0x02014b50,4),_u32(20,2),_u32(20,2),_u32(0x0800,2),_u32(0,2),_u32(0,2),_u32(0,2),_u32(crc,4),_u32(data.length,4),_u32(data.length,4),_u32(name.length,2),_u32(0,2),_u32(0,2),_u32(0,2),_u32(0,2),_u32(0,4),_u32(off,4),name]));
+    off+=lh.length+data.length;
+  });
+  const cenBuf=_cat(cen);
+  const end=_cat([_u32(0x06054b50,4),_u32(0,2),_u32(0,2),_u32(files.length,2),_u32(files.length,2),_u32(cenBuf.length,4),_u32(off,4),_u32(0,2)]);
+  return _cat([...parts,cenBuf,end]);
+}
+function _xesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function _col(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s}
+function _sheetXml(rows,widths){
+  const cols=(widths&&widths.length)?('<cols>'+widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')+'</cols>'):'';
+  const body=rows.map((r,ri)=>{
+    const cells=r.map((v,ci)=>{
+      if(v===null||v===undefined||v==='')return '';
+      const ref=_col(ci)+(ri+1);
+      const st=ri===0?' s="1"':'';
+      if(typeof v==='number'&&isFinite(v))return `<c r="${ref}"${st}><v>${v}</v></c>`;
+      return `<c r="${ref}"${st} t="inlineStr"><is><t xml:space="preserve">${_xesc(v)}</t></is></c>`;
+    }).join('');
+    return `<row r="${ri+1}">${cells}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${body}</sheetData></worksheet>`;
+}
+const _STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="宋体"/></font><font><b/><sz val="11"/><name val="宋体"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+function xlsxBlob(sheets){
+  const enc=s=>new TextEncoder().encode(s);
+  const names=sheets.map(s=>s.name);
+  const ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+    +sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')
+    +'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+  const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'
+    +names.map((n,i)=>`<sheet name="${_xesc(n)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')
+    +'</sheets></workbook>';
+  const wbr='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    +sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')
+    +`<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const files=[
+    {name:'[Content_Types].xml',data:enc(ct)},
+    {name:'_rels/.rels',data:enc(rels)},
+    {name:'xl/workbook.xml',data:enc(wb)},
+    {name:'xl/_rels/workbook.xml.rels',data:enc(wbr)},
+    {name:'xl/styles.xml',data:enc(_STYLES)}
+  ];
+  sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:enc(_sheetXml(s.rows,s.widths))}));
+  return new Blob([_zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+/* 月报/周报 → Excel（多 sheet） */
+function expReportExcel(kind){
+  kind=kind||lastRepKind||'month';
+  const c=collect(kind);
+  const sheets=[];
+  sheets.push({name:'概况',widths:[26,52],rows:[
+    ['项目','内容'],
+    [kind==='week'?'报告类型':'报告类型',kind==='week'?'周报':'月报'],
+    ['统计周期',c.label],
+    ['生成时间',today()],
+    ['工作事项（其中已完成）',`${c.t.length}（完成 ${c.done.length}）`],
+    ['工时版本更新',c.newVers.length],
+    ['效益条目',c.bens.length],
+    ['临时交办',c.tmp.length],
+    ['涉及料号',c.parts.length],
+    ['新增/验证效益（元/月）',c.money||0],
+    ['折年金额（元）',(c.money||0)*12]
+  ]});
+  sheets.push({name:'标准工时与修订',widths:[18,26,10,12,14,12,60],rows:[
+    ['料号','名称','版本','日期','总成工时(s)','变更类型','说明']
+  ].concat(c.newVers.map(v=>[v.pn,v.name||'',v.h.ver||'',v.h.date||'',v.h.total?Number(v.h.total):'',rInfo(v.h.reason).name,v.h.note||'']))});
+  const rows3=[['类型','标题','关联料号','成效/内容','金额（元/月）','单位','状态']];
+  c.bens.forEach(b=>rows3.push(['效益条目',b.title,b.pn||'',b.desc||'',b.money?Number(b.money):'',b.unit||'',b.state==='stopped'?'已停产':b.state==='phased'?'阶段性':'持续在产']));
+  c.jj.forEach(x=>rows3.push(['计件事项',x.title,x.pn||'',x.detail||'','','',x.stage==='done'?'已完成':'进行中']));
+  sheets.push({name:'计件与效益',widths:[12,34,18,60,14,8,10],rows:rows3});
+  sheets.push({name:'人力评估',widths:[40,64,10],rows:[['标题','内容','状态']].concat(c.mp.map(x=>[x.title,x.detail||'',x.stage==='done'?'已完成':'在办']))});
+  sheets.push({name:'其他事项',widths:[12,44,10,12],rows:[['类型','标题','状态','截止日期']].concat(c.other.map(x=>[tInfo(x.type).short,x.title,x.stage==='done'?'已完成':'在办',x.due||'']))});
+  sheets.push({name:'临时交办',widths:[34,18,10,12,12,10,50],rows:[['标题','关联料号','交办人','交办日期','要求完成','状态','办理情况']]
+    .concat(c.tmp.map(x=>[x.title,x.pn||'',x.from||'',x.date||'',x.due||'',x.stage==='done'?'已完成':x.stage==='doing'?'进行中':'未开始',x.detail||'']))});
+  sheets.push({name:kind==='week'?'下周计划':'下月计划',widths:[12,44,12,10],rows:[['类型','标题','截止日期','状态']].concat(c.open.map(x=>[tInfo(x.type).short,x.title,x.due||'',x.stage==='doing'?'进行中':'未开始']))});
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(xlsxBlob(sheets));
+  a.download=`IE${kind==='week'?'周报':'月报'}-${c.label.replace(/\s*~\s*/g,'_').replace(/\s/g,'')}.xlsx`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+
 function copyReport(){
   const v=$('reportBox').value;
   if(!v){alert('请先生成月报');return}
@@ -1324,10 +1456,12 @@ function fbCopy(v){
 }
 function dlReport(){
   const v=$('reportBox').value;
-  if(!v){alert('请先生成月报');return}
+  if(!v){alert('请先生成月报或周报');return}
+  const wk=lastRepKind==='week';
+  const tag=wk?weekRange(($('repW')&&$('repW').value)||today()).a.replace(/\s/g,''):(($('repM')&&$('repM').value)||today());
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([v],{type:'text/plain;charset=utf-8'}));
-  a.download='IE月报-'+(($('repM')&&$('repM').value)||today())+'.txt';
+  a.download=`IE${wk?'周报':'月报'}-${tag}.txt`;
   a.click();
 }
 
