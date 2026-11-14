@@ -570,7 +570,7 @@ function go(p){
 }
 const PTOOLBAR={
   home:['▦ 工作台',[['＋ 新增事项','openTask()']]],
-  std:['⚙ 工时测定',[['＋ 新建料号台账','newPart()'],['＋ 新增测定事项',"openTask(null,'measure')"]]],
+  std:['⚙ 工时测定',[['＋ 新建料号台账','newPart()'],['⬆ 导入 Excel','openImportPn()'],['＋ 新增测定事项',"openTask(null,'measure')"]]],
   rt:['⟳ 工时复测',[['＋ 新增复测事项',"openTask(null,'retest')"]]],
   jj:['¥ 计件方案',[['＋ 新增计件事项',"openTask(null,'jijian')"],['＋ 记录方案成效','openBen()']]],
   mp:['👥 人力评估',[['＋ 新增评估事项',"openTask(null,'manpower')"]]],
@@ -807,6 +807,7 @@ function rStd(){
   ${ups.map(pnCard).join('')}
   ${list.length?'':'<div class="card"><div class="empty">没有符合条件的料号</div></div>'}
   <div class="card"><button class="btn" style="width:100%" onclick="newPart()">＋ 新建料号工时台账</button>
+  <button class="btn ghost" style="width:100%;margin-top:8px" onclick="openImportPn()">⬆ 批量导入 Excel（料号+工时版本）</button>
   <button class="btn ghost" style="width:100%;margin-top:8px" onclick="openTask(null,'measure')">＋ 新增测定事项</button></div>`;
 }
 function pnCard(p){
@@ -1404,6 +1405,322 @@ function xlsxBlob(sheets){
   sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:enc(_sheetXml(s.rows,s.widths))}));
   return new Blob([_zip(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
+/* ==================================================================
+   表格导入：料号工时台账（浏览器内直接解析 .xlsx，零外部依赖）
+   ================================================================== */
+async function _inflateRaw(raw){
+  if(typeof DecompressionStream==='undefined')
+    throw new Error('当前浏览器不支持解压 xlsx。请用 Chrome/Edge 打开本页，或把表格另存为 CSV 后再导入');
+  const st=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(st).arrayBuffer());
+}
+async function _unzip(u8){
+  const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);
+  let eocd=-1;
+  const stop=Math.max(0,u8.length-66000);
+  for(let i=u8.length-22;i>=stop;i--){ if(dv.getUint32(i,true)===0x06054b50){eocd=i;break} }
+  if(eocd<0) throw new Error('文件不是有效的 xlsx（未找到 zip 目录）');
+  const cnt=dv.getUint16(eocd+10,true);
+  let p=dv.getUint32(eocd+16,true);
+  const out={};
+  for(let k=0;k<cnt;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true);
+    const csize=dv.getUint32(p+20,true);
+    const nameLen=dv.getUint16(p+28,true);
+    const extraLen=dv.getUint16(p+30,true);
+    const cmtLen=dv.getUint16(p+32,true);
+    const lho=dv.getUint32(p+42,true);
+    const name=new TextDecoder('utf-8').decode(u8.subarray(p+46,p+46+nameLen));
+    const lnameLen=dv.getUint16(lho+26,true);
+    const lextraLen=dv.getUint16(lho+28,true);
+    const start=lho+30+lnameLen+lextraLen;
+    const raw=u8.subarray(start,start+csize);
+    out[name]=method===0?raw:(await _inflateRaw(raw));
+    p+=46+nameLen+extraLen+cmtLen;
+  }
+  return out;
+}
+const _colIdx=ref=>{
+  const m=/^([A-Z]+)/.exec(String(ref||'').toUpperCase());
+  if(!m) return 0;
+  let n=0;
+  for(const ch of m[1]) n=n*26+(ch.charCodeAt(0)-64);
+  return n-1;
+};
+function _sheetRows(xml,shared){
+  const d=new DOMParser().parseFromString(xml,'application/xml');
+  const rows=[];
+  for(const r of d.getElementsByTagName('row')){
+    const arr=[];
+    for(const c of r.getElementsByTagName('c')){
+      const i=_colIdx(c.getAttribute('r'));
+      const ty=c.getAttribute('t');
+      let v='';
+      if(ty==='s'){
+        const e=c.getElementsByTagName('v')[0];
+        v=e?(shared[+e.textContent]||''):'';
+      }else if(ty==='inlineStr'){
+        v=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');
+      }else{
+        const e=c.getElementsByTagName('v')[0];
+        v=e?e.textContent:'';
+      }
+      arr[i]=v;
+    }
+    rows.push(Array.from(arr,x=>x==null?'':x));
+  }
+  return rows;
+}
+async function parseXlsx(buf){
+  const f=await _unzip(new Uint8Array(buf));
+  const dec=new TextDecoder('utf-8');
+  let shared=[];
+  if(f['xl/sharedStrings.xml']){
+    const d=new DOMParser().parseFromString(dec.decode(f['xl/sharedStrings.xml']),'application/xml');
+    shared=[...d.getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(x=>x.textContent).join(''));
+  }
+  let target='xl/worksheets/sheet1.xml';
+  if(f['xl/workbook.xml']&&f['xl/_rels/workbook.xml.rels']){
+    const wb=new DOMParser().parseFromString(dec.decode(f['xl/workbook.xml']),'application/xml');
+    const rl=new DOMParser().parseFromString(dec.decode(f['xl/_rels/workbook.xml.rels']),'application/xml');
+    const first=[...wb.getElementsByTagName('sheet')][0];
+    if(first){
+      const rid=first.getAttribute('r:id')||first.getAttribute('id');
+      const rel=[...rl.getElementsByTagName('Relationship')].find(x=>x.getAttribute('Id')===rid);
+      if(rel){
+        const tg=(rel.getAttribute('Target')||'').replace(/^\/?xl\//,'').replace(/^\//,'');
+        if(f['xl/'+tg]) target='xl/'+tg;
+      }
+    }
+  }
+  if(!f[target]) throw new Error('未找到工作表内容');
+  return _sheetRows(dec.decode(f[target]),shared);
+}
+/* 表头识别：列名 → 字段 */
+const _PNCOLS={
+  pn:['料号','品号','物料号','物料编码','零件号','pn'],
+  name:['品名','名称','产品名称','物料名称','零件名称'],
+  shop:['车间','生产车间','工序','车间工序'],
+  date:['日期','测定日期','更新时间','版本日期','更新日期'],
+  ver:['版本','版本号','版次','ver','version'],
+  total:['总成工时','工时','标准工时','总工时','单件工时'],
+  reason:['变更原因','原因','变更类型','变更性质'],
+  note:['说明','备注','变更说明','描述','内容']
+};
+const _normCol=s=>String(s==null?'':s).replace(/\s/g,'').replace(/[（(][^）)]*[）)]/g,'').replace(/[:：]/g,'').toLowerCase();
+function mapCols(header){
+  const hs=header.map(_normCol), used=new Set(), m={};
+  const keys=Object.keys(_PNCOLS);
+  keys.forEach(k=>{
+    const alts=_PNCOLS[k].map(_normCol);
+    for(let i=0;i<hs.length;i++){
+      if(used.has(i)||!hs[i]) continue;
+      if(alts.includes(hs[i])){ m[k]=i; used.add(i); return; }
+    }
+  });
+  keys.forEach(k=>{
+    if(m[k]!=null) return;
+    const alts=_PNCOLS[k].map(_normCol).filter(a=>a.length>=2);
+    for(let i=0;i<hs.length;i++){
+      if(used.has(i)||!hs[i]) continue;
+      if(alts.some(a=>hs[i].includes(a))){ m[k]=i; used.add(i); return; }
+    }
+  });
+  return m;
+}
+function _xdate(v){
+  const s=String(v==null?'':v).trim();
+  if(!s) return '';
+  const m1=/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/.exec(s);
+  if(m1) return m1[1]+'-'+m1[2].padStart(2,'0')+'-'+m1[3].padStart(2,'0');
+  const n=+s;
+  if(isFinite(n)&&n>20000&&n<80000){
+    const d=new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000);
+    const q=x=>String(x).padStart(2,'0');
+    return d.getUTCFullYear()+'-'+q(d.getUTCMonth()+1)+'-'+q(d.getUTCDate());
+  }
+  return s;
+}
+const _numOf=v=>{
+  const n=parseFloat(String(v==null?'':v).replace(/[,，\s]/g,''));
+  return isFinite(n)?Math.round(n*10000)/10000:0;
+};
+function _reasonKey(txt){
+  const s=String(txt||'').trim();
+  if(!s) return '';
+  if(/初版|首次|初始/.test(s)) return 'init';
+  const hit=(DB.reasons||[]).find(r=>r.name===s||s.includes(r.name)||(r.name.length>2&&r.name.includes(s)));
+  return hit?hit.key:'';
+}
+
+/* ---- 导入主流程 ---- */
+let _imp={items:[],plan:[],fileName:''};
+
+function openImportPn(){
+  _imp={items:[],plan:[],fileName:''};
+  openModal(`<h3>批量导入料号工时台账</h3>
+  <div class="hint" style="margin-top:0">支持 .xlsx 表格：第一行是表头，列名参照模板即可，顺序不限。同一料号写多行＝多个工时版本；料号格留空会自动沿用上一行（兼容合并单元格）。<br>只读取文件的<b>第一个工作表</b>，多 sheet 请把要导入的那页移到最前。</div>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+    <button class="btn ghost sm" onclick="dlPnTemplate()">⬇ 下载导入模板</button>
+    <button class="btn sm" onclick="$('pnf').click()">选择 Excel 文件</button>
+  </div>
+  <input type="file" id="pnf" accept=".xlsx,.xlsm" style="display:none" onchange="onPnFile(this)">
+  <div id="impBox" style="margin-top:12px"></div>`);
+}
+function dlPnTemplate(){
+  const sheets=[
+    {name:'料号工时台账',widths:[20,26,14,10,12,14,16,52],rows:[
+      ['料号','品名','车间','版本号','日期','总成工时(s)','变更原因','说明'],
+      ['500111-00163','下箱体_辊压','焊接','V1.0','2026-01-10',9706.63,'初版','首次测定，批量口径'],
+      ['500111-00163','下箱体_辊压','焊接','V2.0','2026-10-08',9706.63,'工艺变更','总成工时更新，明细至20261013版'],
+      ['500105-00469','HO3内置冷板冲压下箱体','冲压','V1.0','2026-10-23',0,'工序优化','装配工序按现行动作重测：7人≈190台/日']
+    ]},
+    {name:'填写说明',widths:[16,74],rows:[
+      ['项目','说明'],
+      ['表头行','第一行必须是列名，顺序不限；列可多可少，多余列会被忽略'],
+      ['料号','必填。同一料号写多行＝多个工时版本；料号单元格留空时自动沿用上一行（方便合并单元格）'],
+      ['品名/车间','新料号建档时使用；已有料号只在原值为空时补写'],
+      ['版本号','如 V1.0 / V2.0，留空按 V1.0'],
+      ['日期','写成 2026-10-22 或 2026/10/22，Excel 日期格式也能识别；留空按当天'],
+      ['总成工时(s)','纯数字，单位秒；填 0 或不填表示该项暂无数据'],
+      ['变更原因','可填：初版 / 工艺变更 / 工序优化 / 检验标准变更 / 熟练度上升 / 设备变更 / 环境/管理影响'],
+      ['重复判定','料号＋版本号＋日期 完全相同视为重复，导入时可选择覆盖或跳过'],
+      ['导入去向','写入「⚙ 工时测定」的料号台账；料号最新日期会更新为最近更新日']
+    ]}
+  ];
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(xlsxBlob(sheets));
+  a.download='料号工时台账-导入模板.xlsx';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+}
+async function onPnFile(inp){
+  const f=inp.files&&inp.files[0];
+  if(!f) return;
+  const box=$('impBox');
+  box.innerHTML='<div class="hint">正在解析 '+esc(f.name)+' …</div>';
+  try{
+    const rows=await parseXlsx(await f.arrayBuffer());
+    let hi=rows.findIndex(r=>r.some(c=>{const h=_normCol(c);return h.includes('料号')||h.includes('品号')||h.includes('物料号')}));
+    if(hi<0) hi=0;
+    const header=rows[hi]||[];
+    const map=mapCols(header);
+    if(map.pn==null) throw new Error('没找到「料号」列，请对照模板调整表头首行');
+    const body=rows.slice(hi+1).filter(r=>r.some(c=>String(c).trim()!==''));
+    if(!body.length) throw new Error('表头下方没有数据行');
+    let lastPn='';
+    const items=[];
+    body.forEach(r=>{
+      let pn=String(r[map.pn]||'').trim();
+      if(!pn) pn=lastPn; else lastPn=pn;
+      if(!pn) return;
+      items.push({
+        pn,
+        name:map.name!=null?String(r[map.name]||'').trim():'',
+        shop:map.shop!=null?String(r[map.shop]||'').trim():'',
+        ver:(map.ver!=null?String(r[map.ver]||'').trim():'')||'V1.0',
+        date:_xdate(map.date!=null?r[map.date]:'')||today(),
+        total:map.total!=null?_numOf(r[map.total]):0,
+        reason:_reasonKey(map.reason!=null?r[map.reason]:''),
+        note:map.note!=null?String(r[map.note]||'').trim():''
+      });
+    });
+    if(!items.length) throw new Error('没有解析到有效数据行（料号列全为空）');
+    _imp={items,fileName:f.name,map};
+    renderImpPreview();
+  }catch(e){
+    box.innerHTML='<div style="color:#e5484d;font-size:12px;line-height:1.7">解析失败：'+esc(e&&e.message||e)+'</div>';
+  }
+}
+function _impPlan(){
+  const plan=[], seen=new Set();
+  (_imp.items||[]).forEach(it=>{
+    const key=it.pn+'|'+it.ver+'|'+it.date;
+    if(seen.has(key)){ plan.push({...it,act:'skip',why:'本文件内重复'}); return; }
+    seen.add(key);
+    const p=DB.parts.find(x=>x.pn===it.pn);
+    if(!p){ plan.push({...it,act:'newPn',why:'新料号建档'}); return; }
+    const has=p.hours.some(h=>h.ver===it.ver&&h.date===it.date);
+    plan.push({...it,act:has?'dup':'ver',why:has?'已存在同版本同日期':'新增版本'});
+  });
+  return plan;
+}
+function renderImpPreview(){
+  const plan=_impPlan();
+  _imp.plan=plan;
+  const c={newPn:0,ver:0,dup:0,skip:0};
+  plan.forEach(x=>c[x.act]++);
+  const actTag=a=>a==='newPn'?'<span class="tg" style="background:#2f6fed18;color:#2f6fed">新料号</span>'
+    :a==='ver'?'<span class="tg" style="background:#16a34a18;color:#16a34a">新增版本</span>'
+    :a==='dup'?'<span class="tg" style="background:#64748b18;color:#64748b">已存在</span>'
+    :'<span class="tg" style="background:#94a3b818;color:#94a3b8">文件内重复</span>';
+  const show=plan.slice(0,80);
+  $('impBox').innerHTML=`
+  <div class="hint" style="margin-top:0">文件：${esc(_imp.fileName)}　解析 ${plan.length} 行</div>
+  <div class="kpi" style="grid-template-columns:repeat(4,1fr);margin:8px 0">
+    <div><b style="color:var(--blue2)">${c.newPn}</b><span>新料号</span></div>
+    <div><b style="color:var(--green)">${c.ver}</b><span>新增版本</span></div>
+    <div><b style="color:var(--sub)">${c.dup}</b><span>已存在</span></div>
+    <div><b style="color:var(--sub)">${c.skip}</b><span>文件内重复</span></div>
+  </div>
+  <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:4px 0 8px">
+    <input type="checkbox" id="impOver" onchange="_imp.over=this.checked">
+    <span>覆盖已存在版本（料号＋版本＋日期相同时，用文件里的工时和说明更新）</span>
+  </label>
+  <div style="max-height:250px;overflow:auto;border:1px solid var(--line);border-radius:8px">
+    <table class="tb" style="font-size:11px">
+      <tr><th>料号</th><th>版本</th><th>日期</th><th>工时(s)</th><th>状态</th></tr>
+      ${show.map(x=>`<tr>
+        <td style="font-family:ui-monospace,monospace;white-space:nowrap">${esc(x.pn)}</td>
+        <td style="white-space:nowrap">${esc(x.ver)}</td>
+        <td style="white-space:nowrap">${esc(x.date)}</td>
+        <td class="num">${x.total?fmtN(x.total):'—'}</td>
+        <td style="white-space:nowrap">${actTag(x.act)}</td>
+      </tr>`).join('')}
+    </table>
+  </div>
+  ${plan.length>show.length?`<div class="hint">仅预览前 80 行，实际导入 ${plan.length} 行</div>`:''}
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn" style="flex:1" onclick="doImportPn()">确认导入</button>
+    <button class="btn gray" onclick="closeModal()">取消</button>
+  </div>`;
+}
+function doImportPn(){
+  const plan=_imp.plan||[];
+  const over=!!($('impOver')&&$('impOver').checked)||!!_imp.over;
+  let np=0,nv=0,nu=0,nd=0;
+  plan.forEach(it=>{
+    if(it.act==='skip'){ nd++; return; }
+    let p=DB.parts.find(x=>x.pn===it.pn);
+    if(!p){
+      p={pn:it.pn,name:it.name||'（未命名）',shop:it.shop||'—',cat:'—',
+        lastUpdate:it.date,cycleMonth:6,eol:false,hours:[]};
+      DB.parts.push(p); np++;
+    }else{
+      if(it.name&&(!p.name||p.name==='（未命名）')) p.name=it.name;
+      if(it.shop&&(!p.shop||p.shop==='—')) p.shop=it.shop;
+    }
+    const ex=p.hours.find(h=>h.ver===it.ver&&h.date===it.date);
+    if(ex){
+      if(over){
+        ex.total=it.total; if(it.note)ex.note=it.note; if(it.reason)ex.reason=it.reason;
+        nu++;
+      }else{ nd++; return; }
+    }else{
+      p.hours.push({ver:it.ver,date:it.date,total:it.total,unit:'s',note:it.note,reason:it.reason,by:DB.owner});
+      nv++;
+    }
+    if(!p.lastUpdate||it.date>p.lastUpdate) p.lastUpdate=it.date;
+  });
+  save(); closeModal();
+  if(typeof stdFilter!=='undefined') stdFilter='all';
+  if(cur==='std') rStd();
+  else if(cur==='rt') rRt();
+  const msg=`导入完成\n· 新建料号 ${np} 个\n· 新增工时版本 ${nv} 条\n· 覆盖更新 ${nu} 条\n· 跳过 ${nd} 条`;
+  setTimeout(()=>alert(msg),120);
+}
+
 /* 月报/周报 → Excel（多 sheet） */
 function expReportExcel(kind){
   kind=kind||lastRepKind||'month';
@@ -1475,6 +1792,7 @@ function rData(){
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">
       <button class="btn" onclick="expJSON()">导出 JSON</button>
       <button class="btn ghost" onclick="$('impf').click()">导入恢复</button>
+      <button class="btn ghost" onclick="openImportPn()">⬆ 导入 Excel 台账</button>
       <button class="btn gray" onclick="resetSeed()">恢复初始数据</button>
       <button class="btn red" onclick="clearAll()">清空</button>
     </div>
